@@ -24,8 +24,8 @@ class Game2048(gym.Env):
         reward, ended = self.env.move(action)
         return self.env.get_board(), reward, ended, {'score': self.env.score, 'won': self.env.won}
 
-    def reset(self):
-        self.env.reset_game()
+    def reset(self, state=None):
+        self.env.reset_game(state)
         return self.env.get_board()
 
     def render(self, mode='human', close=False):

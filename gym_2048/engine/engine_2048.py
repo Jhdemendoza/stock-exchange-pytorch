@@ -5,65 +5,28 @@ import numpy as np
 class Engine:
     """ 2048 Game class """
 
-    def __init__(self, N=4, start_tiles=2, seed=None):
+    def __init__(self, num_observed_tickers=4, state=None, seed=None):
         # Number of moves available
-        self.N = N
-        self.score = 0
-        self.ended = False
-        self.won = False
-        self.last_move = '-'
-        self.start_tiles = start_tiles
-        self.board = [[0]*self.N for i in range(self.N)]
-        self.merged = [[False]*self.N for i in range(self.N)]
-
+        self.N = num_observed_tickers
+        self.reset_game(state)
         if seed:
             random.seed(seed)
 
-        self.add_start_tiles()
-
-    def flatten(self, l):
-        return [item for sublist in l for item in sublist]
-
-    def reset_game(self):
+    def reset_game(self, state=None):
         self.score = 0
         self.ended = False
         self.won = False
         self.last_move = '-'
+
+        self.state = state
+
         self.board = [[0]*self.N for i in range(self.N)]
         self.merged = [[False]*self.N for i in range(self.N)]
 
-        # This is the start of the game
-        self.add_start_tiles()
-
+    # Returns state
     def get_board(self):
         return self.board
 
-    # Start writing this a new
-    def add_start_tiles(self):
-        for i in range(self.start_tiles):
-            self.add_random()
-
-    def add_random(self):
-        empty_cells = []
-        for i in range(0, self.N):
-            for j in range(0, self.N):
-                if self.board[i][j] == 0:
-                    empty_cells += [[i,j]]
-
-        if empty_cells:
-            cell = random.choice(empty_cells)
-            self.board[cell[0]][cell[1]] = 2 if random.random() < 0.95 else 4
-
-    def create_traversal(self, vector):
-        v_x = list(range(0,self.N))
-        v_y = list(range(0,self.N))
-
-        if vector['x'] == 1:
-            v_x.reverse()
-        elif vector['y'] == 1:
-            v_y.reverse()
-
-        return (v_y, v_x)
 
     def find_furthest(self, row, col, vector):
         """ finds furthest cell interactable (empty or same value) """
@@ -83,72 +46,13 @@ class Engine:
 
         return (i - vector['y'], j - vector['x'])
 
-    def create_vector(self, direction):
-        if direction == 0:
-            return {'x': 0, 'y': -1}
-        elif direction == 1:
-            return {'x': 1, 'y': 0}
-        elif direction == 2:
-            return {'x': 0, 'y': 1}
-        else:
-            return {'x': -1, 'y': 0}
-
     def moves_available(self):
-        moves = [False]*4
-        for direction in range(4):
-            dir_vector = self.create_vector(direction)
-            traversal_y, traversal_x = self.create_traversal(dir_vector)
+        raise NotImplementedError
 
-            for row in traversal_y:
-                for col in traversal_x:
-                    val = self.board[row][col]
-
-                    if val:
-                        n_row, n_col = self.find_furthest(row, col, dir_vector)
-
-                        if not ((n_row,n_col) == (row,col)):
-                            n_val = self.board[n_row][n_col]
-                            if (val == n_val and not self.merged[n_row][n_col]) or (n_val == 0):
-                                moves[direction] = True
-
-        return moves
-
+    # make a move
     def move(self, direction):
         # up: 0, right: 1, down: 2, left: 3
-        dir_vector = self.create_vector(direction)
-        traversal_y, traversal_x = self.create_traversal(dir_vector)
-        self.last_move = str(direction)
-        reward = 0
 
-        moved = False
-        for row in traversal_y:
-            for col in traversal_x:
-                val = self.board[row][col]
-
-                if val:
-                    n_row, n_col = self.find_furthest(row, col, dir_vector)
-
-                    # if furthest is found
-                    if not ((n_row, n_col) == (row,col)):
-                        # merge
-                        if val == self.board[n_row][n_col] and not self.merged[n_row][n_col]:
-                            self.board[n_row][n_col] += val
-                            self.board[row][col] = 0
-                            self.merged[n_row][n_col] = True
-
-                            reward += val*2
-                            self.score += reward
-                            self.won = (reward >= 2048*8)
-                            moved = True
-                        # move
-                        elif self.board[n_row][n_col] == 0:
-                            self.board[n_row][n_col] += val
-                            self.board[row][col] = 0
-
-                            moved = True
-
-        # reset merged flags
-        self.merged = [[False]*self.N for i in range(self.N)]
         if moved:
             self.add_random()
 
