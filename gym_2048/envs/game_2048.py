@@ -11,12 +11,11 @@ import numpy as np
 class Game2048(gym.Env):
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, seed=None):
+    def __init__(self, num_observed_tickers=1, seed=None):
         self.action_space = spaces.Discrete(4)
-        self.observation_space = spaces.Discrete(12*4*4)
-        self.reward_range = (0,np.inf)
+        self.observation_space = spaces.Discrete(num_observed_tickers)
         self._seed = seed
-        self.env = Engine(seed=seed)
+        self.env = Engine(N=num_observed_tickers, seed=seed)
         self.env.reset_game()
 
     def step(self, action):
