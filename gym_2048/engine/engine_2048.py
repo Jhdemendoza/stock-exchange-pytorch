@@ -1,77 +1,146 @@
-import random
+import collections
+import datetime
+import itertools
+import functools
 import numpy as np
+import pandas as pd
+import six
+
+
+class Ticker:
+    def __init__(self, ticker, start_date, num_days_iter,
+                 today=None, num_actions=21, test=False):
+        self.ticker = str.upper(ticker)
+        self.start_date = start_date
+        self.num_days_iter = num_days_iter
+        self.df = self._load_df(test)
+        self.action_space = np.linspace(-1, 1, num_actions)
+        self.today = 0 if today is None else today
+        self._data_valid()
+
+    def _load_df(self, test):
+        if test:
+            ticker_data = self._load_test_df()
+        else:
+            ticker_data = pd.read_csv(f'iexfinance/iexdata/{self.ticker}')
+            ticker_data = ticker_data[ticker_data.date >= self.start_date]
+            ticker_data.reset_index(inplace=True)
+            # This is really cheating but...
+            # This part should become a new function eventually
+            ticker_data = ticker_data.drop('date', axis=1).pct_change().iloc[1:]
+
+        zeros = pd.DataFrame(np.zeros((len(ticker_data), 2)),
+                             columns=['position', 'pnl'])
+
+        # It's probably better to transpose, then let columns be dates, but wtf...
+        df = pd.concat([ticker_data, zeros], axis=1) # .set_index('date')
+        df.drop('index', axis=1, inplace=True)
+        return df
+
+    def _load_test_df(self):
+        date_col = [datetime.date.today() + datetime.timedelta(days=i)
+                    for i in range(self.num_days_iter)]
+        temp_df = pd.DataFrame(np.ones((self.num_days_iter, 6)),
+                               columns=['date', 'open', 'high', 'low', 'close', 'volume'])
+        temp_df.iloc[:, 0] = date_col
+        return temp_df
+
+    def _data_valid(self):
+        pass
+
+    def get_state(self, delta_t=0):
+        return self.df.iloc[self.today + delta_t, -4:]
+
+    # 1. Reward is tricky
+    # 2. Should invalid action be penalized?
+    def step(self, action):
+        if not self.done():
+            # Record pnl
+            # This implementation of reward is such a hogwash!!
+            #     but recall, Deepmind Atari 2600 solution does something similar...
+            #     assigning credit is always hard...
+            # Pandas complain here, "A value is trying to be set on a copy of a slice from a DataFrame"
+            #     but the suggested solution is actually misleading... so leaving it as is
+            pd.set_option('mode.chained_assignment', None)
+            self.df.pnl[self.today] = reward = 0.0 if self.today == 0 else \
+                                               self.df.position[self.today - 1] * self.df.close[self.today]
+                                               # np.log(self.df.close[self.today] /
+                                               #        self.df.close[self.today - 1]) * self.df.position[self.today-1]
+
+            # Record position
+            # Feel like we should force the action to be valid...
+            #     Otherwise, the action-reward function becomes too complex for
+            #     the network to learn.
+            if self.valid_action(action):
+                self.df.position[self.today] = self.df.position[self.today - 1] \
+                                               + self.action_space[action]
+            else:
+                self.df.position[self.today] = self.df.position[self.today - 1]
+                reward = -10.0
+
+            self.today += 1
+            # Think about how to re-allocate the reward
+            return reward, False
+        else:
+            return 0.0, True
+
+    def valid_action(self, action):
+        current_position = self.df.position[self.today - 1]
+        return -1.0 <= current_position + self.action_space[action] <= 1.0
+
+    def reset(self):
+        self.today = 0
+        # take care of df position & pnl
+        self.df.position = self.df.pnl = 0.0
+
+    # NOT THE MOST EFFICIENT...
+    def done(self):
+        return self.today > self.num_days_iter
+
+
+def iterable(arg):
+    return (isinstance(arg, collections.Iterable) and
+            not isinstance(arg, six.string_types))
 
 
 class Engine:
-    """ 2048 Game class """
+    def __init__(self, tickers, start_date, num_days_iter,
+                 today=None, seed=None):
+        if seed: np.random.seed(seed)
+        if not iterable(tickers): tickers = [tickers]
+        self.tickers = self._get_tickers_objs(tickers, start_date, num_days_iter, today)
+        self.reset_game()
 
-    def __init__(self, num_observed_tickers=4, state=None, seed=None):
-        # Number of moves available
-        self.N = num_observed_tickers
-        self.reset_game(state)
-        if seed:
-            random.seed(seed)
+    def reset_game(self):
+        self.score, self.done = 0.0, False
+        list(map(lambda ticker: ticker.reset(), self.tickers))
 
-    def reset_game(self, state=None):
-        self.score = 0
-        self.ended = False
-        self.won = False
-        self.last_move = '-'
+    @staticmethod
+    def _get_tickers_objs(tickers, start_date, num_days_iter, today):
+        return [Ticker(ticker, start_date, num_days_iter, today) for ticker in tickers]
 
-        self.state = state
-
-        self.board = [[0]*self.N for i in range(self.N)]
-        self.merged = [[False]*self.N for i in range(self.N)]
-
-    # Returns state
-    def get_board(self):
-        return self.board
-
-
-    def find_furthest(self, row, col, vector):
-        """ finds furthest cell interactable (empty or same value) """
-        found = False
-        val = self.board[row][col]
-        i = row + vector['y']
-        j = col + vector['x']
-        while i >= 0 and i < self.N and j >= 0 and j < self.N:
-            val_tmp = self.board[i][j]
-            if self.merged[i][j] or (val_tmp != 0 and val_tmp != val):
-                return (i - vector['y'], j - vector['x'])
-            if val_tmp:
-                return (i, j)
-
-            i += vector['y']
-            j += vector['x']
-
-        return (i - vector['y'], j - vector['x'])
+    # return state
+    def get_state(self):
+        return list(map(lambda ticker: ticker.get_state(), self.tickers))
 
     def moves_available(self):
         raise NotImplementedError
 
-    # make a move
-    def move(self, direction):
-        # up: 0, right: 1, down: 2, left: 3
+    # take a step
+    def step(self, actions):
+        if not iterable(actions): actions = [actions]
+        assert len(self.tickers) == len(actions)
 
-        if moved:
-            self.add_random()
+        rewards, dones = zip(*(itertools.starmap(lambda ticker, action: ticker.step(action),
+                                                 zip(self.tickers, actions))))
 
-        self.ended = not True in self.moves_available() # or self.won
-        if self.ended and not self.won:
-            logged_reward = -3.0
-        else:
-            logged_reward = np.clip(np.log2(reward), 0, 18) / 11.0 # log2(1024) == 10, 18 totally aribtrary
+        self.score = functools.reduce(lambda x, y: x + y, rewards, 0)
+        self.done = functools.reduce(lambda x, y: x | y, dones, False)
 
-        return logged_reward, self.ended
+        return self.score, self.done
 
-    def __str__(self):
-        max_len = len(str(max(max(self.board))))
-        board_str = ""
-        for row in self.board:
-            padded_row = [str(cell).rjust(max_len) for cell in row]
-            board_str += "{0} {1} {2} {3}\n".format(*padded_row)
+    def __repr__(self):
+        tickers = [f'ticker_{i}:{ticker.ticker}, ' for i, ticker in enumerate(self.tickers)]
+        return str(tickers)
 
-        board_str += "Score: {}\n".format(self.score)
-        board_str += "Move: {}\n".format(self.last_move)
-        return board_str
 
