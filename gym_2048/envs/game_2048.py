@@ -38,6 +38,9 @@ class Game2048(gym.Env):
         outfile = StringIO() if mode == 'ansi' else sys.stdout
         outfile.write(str(self.env))
 
+    def get_state(self, delta_t=0):
+        return self.env.get_state(delta_t)
+
     def moves_available(self):
         return self.env.moves_available()
 

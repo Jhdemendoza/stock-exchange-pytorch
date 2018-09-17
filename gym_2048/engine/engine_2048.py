@@ -13,7 +13,7 @@ class Ticker:
         self.ticker = str.upper(ticker)
         self.start_date = start_date
         self.num_days_iter = num_days_iter
-        self.df = self._load_df(test)
+        self.df, self.dates = self._load_df(test)
         self.action_space = np.linspace(-1, 1, num_actions)
         self.today = 0 if today is None else today
         self._data_valid()
@@ -27,16 +27,17 @@ class Ticker:
             ticker_data.reset_index(inplace=True)
             # This is really cheating but...
             # This part should become a new function eventually
-            ticker_data = ticker_data.drop('date', axis=1).pct_change().shift(-1)
-            # It would be better if dates are saved as a pd.Series?
+            dates_series = ticker_data['date'][1:]
+            ticker_data = ticker_data.drop('date', axis=1).pct_change().shift(-1)[:-1]
 
         zeros = pd.DataFrame(np.zeros((len(ticker_data), 2)),
                              columns=['position', 'pnl'])
 
         # It's probably better to transpose, then let columns be dates, but wtf...
-        df = pd.concat([ticker_data, zeros], axis=1) # .set_index('date')
+        df = pd.concat([ticker_data, zeros], axis=1)
         df.drop('index', axis=1, inplace=True)
-        return df
+
+        return df, dates_series
 
     def _load_test_df(self):
         date_col = [datetime.date.today() + datetime.timedelta(days=i)
@@ -49,6 +50,8 @@ class Ticker:
     def _data_valid(self):
         assert len(self.df) >= self.num_days_iter, \
                 f'DataFrame shape: {self.df.shape}, num_days_iter: {self.num_days_iter}'
+        assert len(self.df) == len(self.dates), \
+                f'df.shape: {self.df.shape}, dates.shape:{self.dates.shape}'
 
     def get_state(self, delta_t=0):
         return self.df.iloc[self.today + delta_t, -4:]
@@ -77,7 +80,7 @@ class Ticker:
             #     the network to learn.
             if self.valid_action(action):
                 new_position = self.action_space[action]
-                self.df.position[self.today] = self.df.position[self.today-1] + new_position \
+                self.df.position[self.today] = self.df.position[self.today - 1] + new_position \
                                                if self.today != 0 else new_position
 
             else:
@@ -115,7 +118,7 @@ class Engine:
                  today=None, seed=None):
         if seed: np.random.seed(seed)
         if not iterable(tickers): tickers = [tickers]
-        self.tickers = self._get_tickers_objs(tickers, start_date, num_days_iter, today)
+        self.tickers = self._get_tickers(tickers, start_date, num_days_iter, today)
         self.reset_game()
 
     def reset_game(self):
@@ -123,12 +126,12 @@ class Engine:
         list(map(lambda ticker: ticker.reset(), self.tickers))
 
     @staticmethod
-    def _get_tickers_objs(tickers, start_date, num_days_iter, today):
+    def _get_tickers(tickers, start_date, num_days_iter, today):
         return [Ticker(ticker, start_date, num_days_iter, today) for ticker in tickers]
 
     # return state
-    def get_state(self):
-        return list(map(lambda ticker: ticker.get_state(), self.tickers))
+    def get_state(self, delta_t=0):
+        return list(map(lambda ticker: ticker.get_state(delta_t), self.tickers))
 
     def moves_available(self):
         raise NotImplementedError
@@ -149,5 +152,4 @@ class Engine:
     def __repr__(self):
         tickers = [f'ticker_{i}:{ticker.ticker}, ' for i, ticker in enumerate(self.tickers)]
         return str(tickers)
-
 
