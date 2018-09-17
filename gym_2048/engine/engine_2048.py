@@ -2,6 +2,7 @@ import collections
 import datetime
 import itertools
 import functools
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import six
@@ -27,14 +28,18 @@ class Ticker:
             ticker_data.reset_index(inplace=True)
             # This is really cheating but...
             # This part should become a new function eventually
-            dates_series = ticker_data['date'][1:]
-            ticker_data = ticker_data.drop('date', axis=1).pct_change().shift(-1)[:-1]
+            dates_series = ticker_data['date']
+            ticker_data.drop('date', axis=1, inplace=True)
+            ticker_data_delta = ticker_data.pct_change() #.shift(-1)[:-1]
+            add_str_delta = lambda x: x + '_delta'
+            ticker_data_delta.rename(add_str_delta, axis='columns', inplace=True)
+            ticker_data_delta.iloc[0, :] = 0.0
 
         zeros = pd.DataFrame(np.zeros((len(ticker_data), 2)),
                              columns=['position', 'pnl'])
 
         # It's probably better to transpose, then let columns be dates, but wtf...
-        df = pd.concat([ticker_data, zeros], axis=1)
+        df = pd.concat([ticker_data, ticker_data_delta, zeros], axis=1)
         df.drop('index', axis=1, inplace=True)
 
         return df, dates_series
@@ -107,6 +112,10 @@ class Ticker:
     def done(self):
         return self.today > self.num_days_iter
 
+    def render(self, axis):
+        axis.scatter(self.dates[self.today], self.df.close[self.today])
+        plt.pause(0.005)
+
 
 def iterable(arg):
     return (isinstance(arg, collections.Iterable) and
@@ -115,11 +124,13 @@ def iterable(arg):
 
 class Engine:
     def __init__(self, tickers, start_date, num_days_iter,
-                 today=None, seed=None):
+                 today=None, seed=None, render=False):
         if seed: np.random.seed(seed)
         if not iterable(tickers): tickers = [tickers]
         self.tickers = self._get_tickers(tickers, start_date, num_days_iter, today)
         self.reset_game()
+        self.fig, self.ax_list = plt.subplots(len(tickers), 1)
+        self._prepare_render(render)
 
     def reset_game(self):
         self.score, self.done = 0.0, False
@@ -128,6 +139,12 @@ class Engine:
     @staticmethod
     def _get_tickers(tickers, start_date, num_days_iter, today):
         return [Ticker(ticker, start_date, num_days_iter, today) for ticker in tickers]
+
+    def _prepare_render(self, render):
+        plt.ion()
+        if render:
+            for axis, ticker in zip(self.ax_list, self.tickers):
+                ticker.render(axis)
 
     # return state
     def get_state(self, delta_t=0):
@@ -149,7 +166,11 @@ class Engine:
 
         return self.score, self.done
 
+    def render(self):
+        self._prepare_render(True)
+
     def __repr__(self):
         tickers = [f'ticker_{i}:{ticker.ticker}, ' for i, ticker in enumerate(self.tickers)]
         return str(tickers)
+
 
