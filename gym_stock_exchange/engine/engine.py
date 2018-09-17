@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 import six
 
+plt.ion()
+
 
 class Ticker:
     def __init__(self, ticker, start_date, num_days_iter,
@@ -23,11 +25,11 @@ class Ticker:
         if test:
             ticker_data = self._load_test_df()
         else:
+            # This part should become a function eventually
             ticker_data = pd.read_csv(f'iexfinance/iexdata/{self.ticker}')
             ticker_data = ticker_data[ticker_data.date >= self.start_date]
             ticker_data.reset_index(inplace=True)
             # This is really cheating but...
-            # This part should become a new function eventually
             dates_series = ticker_data['date']
             ticker_data.drop('date', axis=1, inplace=True)
             ticker_data_delta = ticker_data.pct_change() #.shift(-1)[:-1]
@@ -83,6 +85,7 @@ class Ticker:
             # Feel like we should force the action to be valid...
             #     Otherwise, the action-reward function becomes too complex for
             #     the network to learn.
+            #     Or is it? Maybe test with simple neural nets?
             if self.valid_action(action):
                 new_position = self.action_space[action]
                 self.df.position[self.today] = self.df.position[self.today - 1] + new_position \
@@ -114,7 +117,7 @@ class Ticker:
 
     def render(self, axis):
         axis.scatter(self.dates[self.today], self.df.close[self.today])
-        plt.pause(0.005)
+        plt.pause(0.001)
 
 
 def iterable(arg):
@@ -129,8 +132,9 @@ class Engine:
         if not iterable(tickers): tickers = [tickers]
         self.tickers = self._get_tickers(tickers, start_date, num_days_iter, today)
         self.reset_game()
+
         self.fig, self.ax_list = plt.subplots(len(tickers), 1)
-        self._prepare_render(render)
+        self._render(render)
 
     def reset_game(self):
         self.score, self.done = 0.0, False
@@ -140,8 +144,7 @@ class Engine:
     def _get_tickers(tickers, start_date, num_days_iter, today):
         return [Ticker(ticker, start_date, num_days_iter, today) for ticker in tickers]
 
-    def _prepare_render(self, render):
-        plt.ion()
+    def _render(self, render):
         if render:
             for axis, ticker in zip(self.ax_list, self.tickers):
                 ticker.render(axis)
@@ -167,7 +170,7 @@ class Engine:
         return self.score, self.done
 
     def render(self):
-        self._prepare_render(True)
+        self._render(True)
 
     def __repr__(self):
         tickers = [f'ticker_{i}:{ticker.ticker}, ' for i, ticker in enumerate(self.tickers)]

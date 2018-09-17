@@ -2,14 +2,14 @@ import gym
 import gym.spaces as spaces
 from gym import error, utils
 from gym.utils import seeding
-from gym_2048.engine import Engine
+from gym_stock_exchange.engine import Engine
 
 import numpy as np
 import random
 import six
 import sys
 
-class Game2048(gym.Env):
+class StockExchange(gym.Env):
     metadata = {'render.modes': ['human']}
 
     def __init__(self, seed=None):
@@ -35,8 +35,7 @@ class Game2048(gym.Env):
         return self.env.get_state()
 
     def render(self, mode='human', close=False):
-        outfile = StringIO() if mode == 'ansi' else sys.stdout
-        outfile.write(str(self.env))
+        self.env.render()
 
     def get_state(self, delta_t=0):
         return self.env.get_state(delta_t)
