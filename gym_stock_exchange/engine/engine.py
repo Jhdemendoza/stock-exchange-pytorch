@@ -12,7 +12,7 @@ plt.ion()
 
 class Ticker:
     def __init__(self, ticker, start_date, num_days_iter,
-                 today=None, num_actions=21, test=False):
+                 today=None, num_actions=3, test=False):
         self.ticker = str.upper(ticker)
         self.start_date = start_date
         self.num_days_iter = num_days_iter
@@ -20,36 +20,39 @@ class Ticker:
         self.action_space = np.linspace(-1, 1, num_actions)
         self.today = 0 if today is None else today
         self._data_valid()
+        self.current_position = 0.0
 
     def _load_df(self, test):
         if test:
             ticker_data = self._load_test_df()
         else:
-            # This part should become a function eventually
             ticker_data = pd.read_csv(f'iexfinance/iexdata/{self.ticker}')
             ticker_data = ticker_data[ticker_data.date >= self.start_date]
-            ticker_data.reset_index(inplace=True)
-            # This is really cheating but...
-            dates_series = ticker_data['date']
-            ticker_data.drop('date', axis=1, inplace=True)
-            ticker_data_delta = ticker_data.pct_change() #.shift(-1)[:-1]
-            add_str_delta = lambda x: x + '_delta'
-            ticker_data_delta.rename(add_str_delta, axis='columns', inplace=True)
-            ticker_data_delta.iloc[0, :] = 0.0
+
+        ticker_data.reset_index(inplace=True)
+        # This is really cheating but...
+        dates_series = ticker_data['date']
+        ticker_data.drop('date', axis=1, inplace=True)
+        # This part should become a function eventually
+        ticker_data_delta = ticker_data.pct_change()
+        add_str_delta = lambda x: x + '_delta'
+        ticker_data_delta.rename(add_str_delta, axis='columns', inplace=True)
+        ticker_data_delta.iloc[0, :] = 0.0
 
         zeros = pd.DataFrame(np.zeros((len(ticker_data), 2)),
                              columns=['position', 'pnl'])
 
         # It's probably better to transpose, then let columns be dates, but wtf...
         df = pd.concat([ticker_data, ticker_data_delta, zeros], axis=1)
-        df.drop('index', axis=1, inplace=True)
+        df.drop(['index', 'index_delta'], axis=1, inplace=True)
 
         return df, dates_series
 
     def _load_test_df(self):
         date_col = [datetime.date.today() + datetime.timedelta(days=i)
                     for i in range(self.num_days_iter)]
-        temp_df = pd.DataFrame(np.ones((self.num_days_iter, 6)),
+        aranged_values = [np.repeat(i, 6) for i in range(1, self.num_days_iter+1)]
+        temp_df = pd.DataFrame(aranged_values,
                                columns=['date', 'open', 'high', 'low', 'close', 'volume'])
         temp_df.iloc[:, 0] = date_col
         return temp_df
@@ -61,7 +64,9 @@ class Ticker:
                 f'df.shape: {self.df.shape}, dates.shape:{self.dates.shape}'
 
     def get_state(self, delta_t=0):
-        return self.df.iloc[self.today + delta_t, -4:]
+        today_market_data_position = np.array(self.df.iloc[self.today+delta_t, -4:-1])
+        today_market_data_position[-1] = self.current_position
+        return today_market_data_position
 
     # 1. Reward is tricky
     # 2. Should invalid action be penalized?
@@ -75,41 +80,49 @@ class Ticker:
             #     but the suggested solution is actually misleading... so leaving it as is
             pd.set_option('mode.chained_assignment', None)
             self.df.pnl[self.today] = reward = 0.0 if self.today == 0 else \
-                                                 self.df.position[self.today - 1] * self.df.close[self.today]
+                                                 self.current_position * self.df.close_delta[self.today]
             #                                    np.log(self.df.close[self.today] /
             #                                           self.df.close[self.today - 1]) * self.df.position[self.today-1]
 
             # Think about accumulating for the scores...
 
+            new_position_delta = self.action_space[action] if self.valid_action(action) else 0.0
+
+            self.current_position = self.df.position[self.today] = new_position_delta
+            # self.current_position = self.df.position[self.today] = \
+            #                         self.df.position[self.today - 1] + new_position_delta \
+            #                                         if self.today != 0 else new_position_delta
             # Record position
             # Feel like we should force the action to be valid...
             #     Otherwise, the action-reward function becomes too complex for
             #     the network to learn.
             #     Or is it? Maybe test with simple neural nets?
-            if self.valid_action(action):
-                new_position = self.action_space[action]
-                self.df.position[self.today] = self.df.position[self.today - 1] + new_position \
-                                               if self.today != 0 else new_position
-
-            else:
-                self.df.position[self.today] = self.df.position[self.today - 1]
-                reward = -10.0
+            # if self.valid_action(action):
+            #     new_position_delta = self.action_space[action]
+            #     self.current_position = self.df.position[self.today] = \
+            #                                     self.df.position[self.today - 1] + new_position_delta \
+            #                                     if self.today != 0 else new_position_delta
+            #
+            # else:
+            #     self.df.position[self.today] = self.df.position[self.today - 1]
+            #     reward = -10.0
 
             self.today += 1
             # Think about how to re-allocate the reward
             return reward, False
         else:
+            self.current_position = 0.0
             return 0.0, True
 
     def valid_action(self, action):
         if self.today == 0: return True
-        current_position = self.df.position[self.today - 1]
-        return -1.0 <= current_position + self.action_space[action] <= 1.0
+        # current_position = self.df.position[self.today - 1]
+        return -1.0 <= self.action_space[action] <= 1.0
+        # return -1.0 <= current_position + self.action_space[action] <= 1.0
 
     def reset(self):
         self.today = 0
-        # take care of df position & pnl
-        self.df.position = self.df.pnl = 0.0
+        self.current_position = self.df.position = self.df.pnl = 0.0
 
     # NOT THE MOST EFFICIENT...
     def done(self):
@@ -127,36 +140,35 @@ def iterable(arg):
 
 class Engine:
     def __init__(self, tickers, start_date, num_days_iter,
-                 today=None, seed=None, render=False):
+                 today=None, seed=None, action_space=3):
         if seed: np.random.seed(seed)
         if not iterable(tickers): tickers = [tickers]
-        self.tickers = self._get_tickers(tickers, start_date, num_days_iter, today)
+        self.tickers = self._get_tickers(tickers, start_date, num_days_iter,
+                                         today, action_space)
         self.reset_game()
 
         self.fig, self.ax_list = plt.subplots(len(tickers), 1)
-        self._render(render)
 
     def reset_game(self):
-        self.score, self.done = 0.0, False
         list(map(lambda ticker: ticker.reset(), self.tickers))
 
-    @staticmethod
-    def _get_tickers(tickers, start_date, num_days_iter, today):
-        return [Ticker(ticker, start_date, num_days_iter, today) for ticker in tickers]
+    def _get_tickers(self, tickers, start_date, num_days_iter,
+                     today, num_action_space):
+        return [Ticker(ticker, start_date, num_days_iter, today, num_action_space)
+                for ticker in tickers]
 
     def _render(self, render):
         if render:
             for axis, ticker in zip(self.ax_list, self.tickers):
                 ticker.render(axis)
 
-    # return state
     def get_state(self, delta_t=0):
+        # Note: np.arary(...) could also be used
         return list(map(lambda ticker: ticker.get_state(delta_t), self.tickers))
 
     def moves_available(self):
         raise NotImplementedError
 
-    # take a step
     def step(self, actions):
         if not iterable(actions): actions = [actions]
         assert len(self.tickers) == len(actions)
@@ -164,16 +176,17 @@ class Engine:
         rewards, dones = zip(*(itertools.starmap(lambda ticker, action: ticker.step(action),
                                                  zip(self.tickers, actions))))
 
-        self.score = functools.reduce(lambda x, y: x + y, rewards, 0)
-        self.done = functools.reduce(lambda x, y: x | y, dones, False)
+        # This is somewhat misleading
+        score = functools.reduce(lambda x, y: x + y, rewards, 0.0)
+        done = functools.reduce(lambda x, y: x | y, dones, False)
 
-        return self.score, self.done
+        return score, done
 
     def render(self):
+        # This is possibly unnecessary b/c of changes
         self._render(True)
 
     def __repr__(self):
         tickers = [f'ticker_{i}:{ticker.ticker}, ' for i, ticker in enumerate(self.tickers)]
         return str(tickers)
-
 
