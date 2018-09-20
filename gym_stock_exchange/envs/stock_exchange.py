@@ -7,7 +7,7 @@ class StockExchange(gym.Env):
     metadata = {'render.modes': ['human']}
 
     def __init__(self, seed=None):
-        self.num_action_space = 5
+        self.num_action_space = 3
         self.action_space = spaces.Discrete(self.num_action_space)
         self._seed = seed
         self.env = None

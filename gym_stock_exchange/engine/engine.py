@@ -64,7 +64,7 @@ class Ticker:
                 f'df.shape: {self.df.shape}, dates.shape:{self.dates.shape}'
 
     def get_state(self, delta_t=0):
-        today_market_data_position = np.array(self.df.iloc[self.today+delta_t, -4:-1])
+        today_market_data_position = np.array(self.df.iloc[self.today+delta_t, -4:-2])
         today_market_data_position[-1] = self.current_position
         return today_market_data_position
 
@@ -80,9 +80,9 @@ class Ticker:
             #     but the suggested solution is actually misleading... so leaving it as is
             pd.set_option('mode.chained_assignment', None)
             self.df.pnl[self.today] = reward = 0.0 if self.today == 0 else \
-                                                 self.current_position * self.df.close_delta[self.today]
-            #                                    np.log(self.df.close[self.today] /
-            #                                           self.df.close[self.today - 1]) * self.df.position[self.today-1]
+                                               self.current_position * self.df.close_delta[self.today]
+            #                                  np.log(self.df.close[self.today] /
+            #                                         self.df.close[self.today - 1]) * self.df.position[self.today-1]
 
             # Think about accumulating for the scores...
 
@@ -105,7 +105,7 @@ class Ticker:
             #
             # else:
             #     self.df.position[self.today] = self.df.position[self.today - 1]
-            #     reward = -10.0
+            #     reward = -2.0
 
             self.today += 1
             # Think about how to re-allocate the reward
@@ -117,8 +117,8 @@ class Ticker:
     def valid_action(self, action):
         if self.today == 0: return True
         # current_position = self.df.position[self.today - 1]
-        return -1.0 <= self.action_space[action] <= 1.0
         # return -1.0 <= current_position + self.action_space[action] <= 1.0
+        return -1.0 <= self.action_space[action] <= 1.0
 
     def reset(self):
         self.today = 0
@@ -171,7 +171,7 @@ class Engine:
 
     def step(self, actions):
         if not iterable(actions): actions = [actions]
-        assert len(self.tickers) == len(actions)
+        assert len(self.tickers) == len(actions), f'{len(self.tickers)}, {len(actions)}'
 
         rewards, dones = zip(*(itertools.starmap(lambda ticker, action: ticker.step(action),
                                                  zip(self.tickers, actions))))
