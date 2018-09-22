@@ -81,7 +81,7 @@ def test_exchange(env, policy_q, testing_interval=100):
 
 
 # Actual days will be 19 days, plus one spot for position variable
-NUM_RUNNING_DAYS = 60
+NUM_RUNNING_DAYS = 40
 
 if __name__ == '__main__':
 

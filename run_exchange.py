@@ -104,7 +104,7 @@ class RunExchange:
     def run_exchange(self):
 
         def adjust_epsilon():
-            MULTIPLIER = 10
+            MULTIPLIER = 5.0
             self.epsilon = self.min_epsilon + (self.max_epsilon - self.min_epsilon) * \
                                                 math.exp(-1.0 * i_episode * MULTIPLIER / self.n_train)
 

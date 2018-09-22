@@ -84,7 +84,7 @@ class Ticker:
 
             # Think about accumulating the scores...
 
-            self.current_position = self.df.position[self.today] = self.action_space[action]
+            self.df.position[self.today] = self.current_position = self.action_space[action]
 
             # new_position_delta = self.action_space[action] if self.today == 0 or \
             #                                                   self.valid_action(action) else 0.0

@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(description='Hyper-parameters for the DQN train
 parser.add_argument('--epsilon',              default=1.0, type=float)
 parser.add_argument('--min_epsilon',          default=0.05, type=float)
 parser.add_argument('--eps_decay_rate',       default=2e-5, type=float)
-parser.add_argument('--update_every',         default=20, type=int)
+parser.add_argument('--update_every',         default=10, type=int)
 parser.add_argument('--log_every',            default=2, type=int)
 parser.add_argument('--n_train',              default=200, type=int)
 parser.add_argument('--batch_size',           default=32, type=int)
@@ -26,7 +26,7 @@ parser.add_argument('--replay_memory_length', default=100000, type=int)
 parser.add_argument('--learning_rate',        default=1e-7, type=float)
 parser.add_argument('--mode',                 default='train', type=str, choices=['train', 'test'])
 parser.add_argument('--num_action_space',     default=3, type=int)
-parser.add_argument('--num_running_days',     default=60, type=int)
+parser.add_argument('--num_running_days',     default=40, type=int)
 
 args = parser.parse_args()
 
