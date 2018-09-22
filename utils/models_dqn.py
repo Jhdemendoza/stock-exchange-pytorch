@@ -44,8 +44,10 @@ class DuelingDQN(nn.Module):
     def act(self, x, epsilon):
         if not torch.is_tensor(x):
             x = torch.tensor([x], dtype=torch.float32, device=device)
+
         if np.random.rand() > epsilon:
             x = self.feature(x).detach()
+            print(self.advantage(x).detach().sort(dim=1, descending=True))
             x = self.advantage(x).detach().argmax().item()
             return x
         else:

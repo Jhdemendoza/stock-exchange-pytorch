@@ -82,27 +82,28 @@ class Ticker:
             self.df.pnl[self.today] = reward = 0.0 if self.today == 0 else \
                                                self.current_position * self.df.close_delta[self.today]
 
-            # Think about accumulating for the scores...
+            # Think about accumulating the scores...
 
-            # self.current_position = self.df.position[self.today] = new_position_delta
+            self.current_position = self.df.position[self.today] = self.action_space[action]
+
+            # new_position_delta = self.action_space[action] if self.today == 0 or \
+            #                                                   self.valid_action(action) else 0.0
             # self.current_position = self.df.position[self.today] = \
-            #                         self.df.position[self.today - 1] + new_position_delta \
-            #                                         if self.today != 0 else new_position_delta
+            #                                 new_position_delta if self.today == 0 else \
+            #                                 self.df.position[self.today-1] + new_position_delta
 
-            # Record position
-            # Feel like we should force the action to be valid...
-            #     Otherwise, the action-reward function becomes too complex for
-            #     the network to learn.
-            #     Or is it? Maybe test with simple neural nets?
-            if self.valid_action(action):
-                new_position_delta = self.action_space[action]
-                self.current_position = self.df.position[self.today] = \
-                                                new_position_delta if self.today == 0 else \
-                                                self.df.position[self.today-1] + new_position_delta
-
-            else:
-                self.df.position[self.today] = self.df.position[self.today-1]
-                reward = -0.1 # This is tricky, should consider the distribution of the returns
+            # If we penalize invalid moves, the model learns to avoid it, but this deters
+            #     learning experiences. Penalty of -0.1 is certainly too high for this matter
+            #
+            # if self.valid_action(action):
+            #     new_position_delta = self.action_space[action]
+            #     self.current_position = self.df.position[self.today] = \
+            #                                     new_position_delta if self.today == 0 else \
+            #                                     self.df.position[self.today-1] + new_position_delta
+            #
+            # else:
+            #     self.current_position = self.df.position[self.today] = self.df.position[self.today-1]
+            #     reward = -0.1 # This is tricky, should consider the distribution of the returns
 
             self.today += 1
             # Think about how to re-allocate the reward
@@ -113,9 +114,10 @@ class Ticker:
 
     def valid_action(self, action):
         if self.today == 0: return True
-        current_position = self.df.position[self.today-1]
-        return -1.0 <= current_position + self.action_space[action] <= 1.0
-        # return -1.0 <= self.action_space[action] <= 1.0
+        # current_position = self.df.position[self.today-1]
+        # return -1.0 <= current_position + self.action_space[action] <= 1.0
+        # The above approach causes shitty troubles...
+        return True
 
     def reset(self):
         self.today = 0
@@ -126,7 +128,9 @@ class Ticker:
         return self.today > self.num_days_iter
 
     def render(self, axis):
-        axis.scatter(self.dates[self.today], self.df.close[self.today])
+        market_data, position = self.get_state()
+        axis[0].scatter(self.today, self.df.pnl[self.today-1])
+        axis[1].scatter(self.today, position)
         plt.pause(0.001)
 
 
@@ -137,14 +141,17 @@ def iterable(arg):
 
 class Engine:
     def __init__(self, tickers, start_date, num_days_iter,
-                 today=None, seed=None, action_space=3):
+                 today=None, seed=None, action_space=3, render=False):
         if seed: np.random.seed(seed)
         if not iterable(tickers): tickers = [tickers]
         self.tickers = self._get_tickers(tickers, start_date, num_days_iter,
                                          today, action_space)
         self.reset_game()
 
-        self.fig, self.ax_list = plt.subplots(len(tickers), 1)
+        if render:
+            # Somehow ax_list should be grouped in two always...
+            # Or is there another way of getting one axis per row and then add?
+            self.fig, self.ax_list = plt.subplots(len(tickers), 2)
 
     def reset_game(self):
         list(map(lambda ticker: ticker.reset(), self.tickers))
@@ -156,8 +163,11 @@ class Engine:
 
     def _render(self, render):
         if render:
-            for axis, ticker in zip(self.ax_list, self.tickers):
-                ticker.render(axis)
+            if len(self.tickers) == 1:
+                self.tickers[0].render(self.ax_list)
+            else:
+                for axis, ticker in zip(self.ax_list, self.tickers):
+                    ticker.render(axis)
 
     def get_state(self, delta_t=0):
         # Note: np.arary(...) could also be used

@@ -10,12 +10,13 @@ class StockExchange(gym.Env):
         self._seed = seed
         self.env = None
 
-    def create_engine(self, tickers, start_date, num_iter_days, num_action_space=3, today=None, seed=None):
+    def create_engine(self, tickers, start_date, num_iter_days,
+                      num_action_space=3, today=None, seed=None, render=False):
         self.num_action_space = num_action_space
         self.action_space = spaces.Discrete(num_action_space)
 
         self.env = Engine(tickers, start_date, num_iter_days, today, seed,
-                          action_space=num_action_space)
+                          action_space=num_action_space, render=render)
         self.reset()
 
     def step(self, actions):
