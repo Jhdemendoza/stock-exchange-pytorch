@@ -67,9 +67,10 @@ class RunExchange:
             new_state_to_add = new_state_to_add[0]
         running_state = pd.Series(running_state_orig).shift(-1)
         # Assign new price to index == last_elem - 1
-        running_state.iloc[-2] = new_state_to_add.item(0)
+        running_state.iloc[-1] = new_state_to_add.item(0)
+        # running_state.iloc[-2] = new_state_to_add.item(0)
         # Assign new position to index == last_elem
-        running_state.iloc[-1] = new_state_to_add.item(1)
+        # running_state.iloc[-1] = new_state_to_add.item(1)
         assert len(running_state_orig) == len(running_state)
         return running_state.tolist()
 
@@ -82,7 +83,7 @@ class RunExchange:
             next_state, reward, done, _ = self.env.step(no_action_index)
             running_state = self.add_new_state(running_state, next_state)
             assert reward == 0, f'Reward is somehow {reward}'
-            assert running_state[-1] == 0.0, f'Position is somehow {running_state[-1]}'
+            # assert running_state[-1] == 0.0, f'Position is somehow {running_state[-1]}'
 
         episode_rewards = []
         actions = []
