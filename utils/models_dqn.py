@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from utils.environment import device
 
-FEATURES = 512
+FEATURES = 128
 
 
 class DuelingDQN(nn.Module):

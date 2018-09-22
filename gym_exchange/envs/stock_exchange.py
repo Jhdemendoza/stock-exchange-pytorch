@@ -15,11 +15,12 @@ class StockExchange(gym.Env):
     num_action_space = 3
     no_action_index = 1
     today = 0
-    render=False
+    render = False
 
     def __init__(self, seed=None):
         self._seed = seed
         self.action_space = spaces.Discrete(self.num_action_space)
+        self.observation_space = spaces.Box(-1.0, 10.0, (self.num_state_space, ), dtype=np.float)
         self.env = Engine(self.tickers, self.start_date, self.num_days_to_iterate,
                           self.today, seed,
                           action_space=self.num_action_space, render=self.render)
@@ -46,7 +47,6 @@ class StockExchange(gym.Env):
         for _ in range(self.num_state_space - 1):
             next_state, reward, done, _ = self.step(self.no_action_index)
             assert reward == 0.0, f'Reward is somehow {reward}'
-            assert next_state[-1] == 0.0, f'Position is somehow {next_state[-1]}'
 
     def moves_available(self):
         return self.env.moves_available()
@@ -63,9 +63,11 @@ class StockExchange(gym.Env):
         running_state_orig = self.state
         running_state = pd.Series(running_state_orig).shift(-1)
         # Assign new price to index == last_elem - 1
-        running_state.iloc[-2] = new_state_to_add.item(0)
+        running_state.iloc[-1] = new_state_to_add.item(0)
+        # running_state.iloc[-2] = new_state_to_add.item(0)
         # Assign new position to index == last_elem
-        running_state.iloc[-1] = new_state_to_add.item(1)
+        # running_state.iloc[-1] = new_state_to_add.item(1)
         assert len(running_state_orig) == len(running_state)
-        return running_state.tolist()
+        return np.array(running_state)
+        # return running_state.tolist()
 

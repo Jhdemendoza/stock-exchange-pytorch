@@ -35,11 +35,11 @@ if __name__ == '__main__':
     policy_q, target_q = DuelingDQN(args.num_running_days, args.num_action_space).cuda(), \
                          DuelingDQN(args.num_running_days, args.num_action_space).cuda()
 
-    try:
-        policy_q.load_state_dict(torch.load('my_duel_policy_vanilla.pt'))
-        target_q.load_state_dict(torch.load('my_duel_target_vanilla.pt'))
-    except FileNotFoundError:
-        print('--- Exception Raised: Files not found...')
+    # try:
+    #     policy_q.load_state_dict(torch.load('my_duel_policy_vanilla.pt'))
+    #     target_q.load_state_dict(torch.load('my_duel_target_vanilla.pt'))
+    # except FileNotFoundError:
+    #     print('--- Exception Raised: Files not found...')
 
     # This is not supported for this version
     # Just leaving as is for now ...

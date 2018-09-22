@@ -7,14 +7,6 @@ import numpy as np
 import pandas as pd
 import datetime
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import matplotlib.pyplot as plt
-from functools import partial
-from copy import deepcopy
-import datetime
-from itertools import count
-import math
 import logging
 import numpy as np
 from random import choice
@@ -86,7 +78,7 @@ NUM_RUNNING_DAYS = 40
 if __name__ == '__main__':
 
     env = gym.make('game-stock-exchange-v0')
-    env.create_engine('aapl', '2016-01-01', 100, num_action_space=3, render=True)
+    env.create_engine('aapl', '2014-01-01', 1000, num_action_space=3, render=True)
 
     policy_q, target_q = DuelingDQN(NUM_RUNNING_DAYS, 3).cuda(), \
                          DuelingDQN(NUM_RUNNING_DAYS, 3).cuda()
@@ -97,7 +89,7 @@ if __name__ == '__main__':
     except FileNotFoundError:
         print('--- Files Not Found ---')
 
-    rewards, actions = test_exchange(env, policy_q, 150)
+    rewards, actions = test_exchange(env, policy_q, 1000)
     # print(f'rewards: {rewards}')
     print(f'actions: {actions}')
 

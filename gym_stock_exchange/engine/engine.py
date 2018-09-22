@@ -20,7 +20,7 @@ class Ticker:
         self.action_space = np.linspace(-1, 1, num_actions)
         self.today = 0 if today is None else today
         self._data_valid()
-        self.current_position = 0.0
+        self.current_position = self.accumulated_pnl = 0.0
 
     def _load_df(self, test):
         if test:
@@ -83,6 +83,7 @@ class Ticker:
                                                self.current_position * self.df.close_delta[self.today]
 
             # Think about accumulating the scores...
+            self.accumulated_pnl += reward
 
             self.df.position[self.today] = self.current_position = self.action_space[action]
 
@@ -93,7 +94,8 @@ class Ticker:
             #                                 self.df.position[self.today-1] + new_position_delta
 
             # If we penalize invalid moves, the model learns to avoid it, but this deters
-            #     learning experiences. Penalty of -0.1 is certainly too high for this matter
+            #     learning experiences. It only focuses on position such that it avoids penalty.
+            #     Penalty of -0.1 is certainly too high for this matter
             #
             # if self.valid_action(action):
             #     new_position_delta = self.action_space[action]
@@ -121,7 +123,8 @@ class Ticker:
 
     def reset(self):
         self.today = 0
-        self.current_position = self.df.position = self.df.pnl = 0.0
+        self.df.position = self.df.pnl = 0.0
+        self.current_position = self.accumulated_pnl = 0.0
 
     # NOT THE MOST EFFICIENT...
     def done(self):
@@ -131,6 +134,7 @@ class Ticker:
         market_data, position = self.get_state()
         axis[0].scatter(self.today, self.df.pnl[self.today-1])
         axis[1].scatter(self.today, position)
+        axis[2].scatter(self.today, self.accumulated_pnl)
         plt.pause(0.001)
 
 
@@ -151,7 +155,7 @@ class Engine:
         if render:
             # Somehow ax_list should be grouped in two always...
             # Or is there another way of getting one axis per row and then add?
-            self.fig, self.ax_list = plt.subplots(len(tickers), 2)
+            self.fig, self.ax_list = plt.subplots(len(tickers), 3)
 
     def reset_game(self):
         list(map(lambda ticker: ticker.reset(), self.tickers))
