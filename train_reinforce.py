@@ -14,7 +14,6 @@ from reinforcement import ReplayMemory
 parser = argparse.ArgumentParser(description='Hyper-parameters for the DQN training')
 parser.add_argument('--epsilon',              default=1.0, type=float)
 parser.add_argument('--min_epsilon',          default=0.05, type=float)
-parser.add_argument('--eps_decay_rate',       default=2e-5, type=float)
 parser.add_argument('--update_every',         default=10, type=int)
 parser.add_argument('--log_every',            default=2, type=int)
 parser.add_argument('--n_train',              default=200, type=int)

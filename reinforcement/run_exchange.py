@@ -50,7 +50,6 @@ class RunExchange:
         self.losses = []
         self.mode = mode
 
-        # if mode == 'train':
         self.fig, self.axis = self.get_figure_and_axis()
 
     @classmethod
@@ -92,7 +91,7 @@ class RunExchange:
             action = self.policy.act(running_state, 0.0)
 
             next_state, reward, done, _ = self.env.step(action)
-            env.render()
+            self.env.render()
 
             # update running_state for the next use
             running_state = self.add_new_state(running_state, next_state)
