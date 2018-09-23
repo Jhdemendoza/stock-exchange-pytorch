@@ -1,21 +1,9 @@
 from reinforcement import DuelingDQN
-import matplotlib.pyplot as plt
 import gym
 import gym_stock_exchange
-import random
-import numpy as np
 import pandas as pd
-import datetime
 import torch
-import logging
 import numpy as np
-from random import choice
-import time
-from reinforcement import device, train_dqn
-import seaborn as sns
-from collections import deque
-from reinforcement import ReplayMemory
-import torch.optim as optim
 
 
 def get_running_state(num_days):

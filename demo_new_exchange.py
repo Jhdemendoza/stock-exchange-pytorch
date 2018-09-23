@@ -1,18 +1,7 @@
 import gym
 import gym_exchange
-import random
-import numpy as np
-import pandas as pd
-import datetime
-from itertools import count
 from collections import Counter, defaultdict
-import math
-import logging
-import numpy as np
-from random import choice
 import time
-from collections import deque
-from reinforcement import ReplayMemory
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines import A2C
