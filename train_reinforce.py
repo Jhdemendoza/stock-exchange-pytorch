@@ -30,6 +30,8 @@ args = parser.parse_args()
 
 if __name__ == '__main__':
 
+    assert args.mode == 'train', '--- Currently not supported. Use test_reinforce.py instead ---'
+
     policy_q, target_q = DuelingDQN(args.num_running_days, args.num_action_space).cuda(), \
                          DuelingDQN(args.num_running_days, args.num_action_space).cuda()
 
@@ -48,10 +50,9 @@ if __name__ == '__main__':
 
     optimizer = optim.RMSprop(policy_q.parameters(), eps=args.learning_rate)
 
-    render = args.mode == 'test'
     env = gym.make('game-stock-exchange-v0')
     env.create_engine('aapl', '2014-01-01', 1000,
-                      num_action_space=args.num_action_space, render=render)
+                      num_action_space=args.num_action_space)
 
     player = RunExchange(env, rm, policy_q, target_q, optimizer, args.num_running_days,
                          args.batch_size, args.epsilon,
@@ -64,6 +65,7 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print('\nKeyboard Interrupt!!!')
     finally:
+        # This is now unnecessary...
         if args.mode == 'train':
             print('Saving...')
             torch.save(policy_q.state_dict(), 'my_duel_policy_vanilla.pt')
