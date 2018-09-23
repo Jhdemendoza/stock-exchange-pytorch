@@ -34,8 +34,6 @@ class StockExchange(gym.Env):
         return self.state, reward, ended, {'score': reward}
 
     def reset(self):
-        assert self.env is not None
-
         self.env.reset_game()
         self.initialize_state()
         return self.state

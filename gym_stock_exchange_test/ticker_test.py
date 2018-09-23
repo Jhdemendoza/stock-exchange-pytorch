@@ -33,6 +33,7 @@ class TestTicker(unittest.TestCase):
 
     # This is a terrible design, I don't like it
     # Reset required...
+    # Might as well setup decorators...
     def take_steps_yield_rewards(self):
         rewards, _ = zip(*self.get_rewards())
         return rewards

@@ -132,9 +132,13 @@ class Ticker:
 
     def render(self, axis):
         market_data, position = self.get_state()
-        axis[0].scatter(self.today, self.df.pnl[self.today-1])
-        axis[1].scatter(self.today, position)
-        axis[2].scatter(self.today, self.accumulated_pnl)
+        # axis[0].scatter(self.today, self.df.pnl[self.today-1])
+        axis[0].set_ylabel(f'Daily price: {self.ticker}')
+        axis[0].plot(np.arange(self.today), self.df.close[:self.today])
+        # axis[1].scatter(self.today, position)
+        # axis[2].scatter(self.today, self.accumulated_pnl)
+        axis[1].set_ylabel(f'Daily return from Agent')
+        axis[1].scatter(self.today, self.df.pnl[self.today-1])
         plt.pause(0.001)
 
 
@@ -155,7 +159,8 @@ class Engine:
         if render:
             # Somehow ax_list should be grouped in two always...
             # Or is there another way of getting one axis per row and then add?
-            self.fig, self.ax_list = plt.subplots(len(tickers), 3)
+            fig_height = 3 * len(self.tickers)
+            self.fig, self.ax_list = plt.subplots(len(tickers), 2, figsize=(10, fig_height))
 
     def reset_game(self):
         list(map(lambda ticker: ticker.reset(), self.tickers))
