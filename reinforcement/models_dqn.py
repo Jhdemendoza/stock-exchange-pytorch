@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from utils.environment import device
+from reinforcement.environment import device
 
 FEATURES = 128
 

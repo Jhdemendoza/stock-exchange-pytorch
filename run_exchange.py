@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
-from utils import train_dqn
+from reinforcement import train_dqn
 import math
 
 try:

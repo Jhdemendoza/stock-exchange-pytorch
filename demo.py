@@ -1,4 +1,4 @@
-from utils import DuelingDQN
+from reinforcement import DuelingDQN
 import matplotlib.pyplot as plt
 import gym
 import gym_stock_exchange
@@ -11,10 +11,10 @@ import logging
 import numpy as np
 from random import choice
 import time
-from utils import device, train_dqn
+from reinforcement import device, train_dqn
 import seaborn as sns
 from collections import deque
-from utils import ReplayMemory
+from reinforcement import ReplayMemory
 import torch.optim as optim
 
 
@@ -72,7 +72,7 @@ def test_exchange(env, policy_q, testing_interval=100):
     return episode_rewards, actions
 
 
-# Actual days will be 19 days, plus one spot for position variable
+# Actual days will be num_days - 1, plus one spot for position variable
 NUM_RUNNING_DAYS = 40
 
 if __name__ == '__main__':

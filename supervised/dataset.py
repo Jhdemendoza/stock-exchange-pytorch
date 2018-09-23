@@ -1,31 +1,8 @@
-import gym
-import gym_exchange
-import random
-import numpy as np
 import pandas as pd
-import datetime
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import matplotlib.pyplot as plt
-import itertools
-import functools
-from functools import partial
-from copy import deepcopy
-import datetime
-from itertools import count
-import math
-import logging
-import matplotlib.pyplot as plt
 import numpy as np
-from random import choice
-import time
-from utils import device, train_dqn
-import seaborn as sns
-from collections import deque, Counter
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from supervised.environment import *
-
 
 
 def digitize(y):
@@ -50,6 +27,16 @@ class TickerData(Dataset):
                    for i in range(len(df) - self.num_state_space)]
         stacked = pd.DataFrame(np.column_stack(stacked))
         target_delta = np.array(close_delta[self.num_state_space:])
+
+        #   If target is to be sum of days
+        # close_delta = np.log(df.close.shift(-1)) - np.log(df.close)
+        # close_delta[-1] = 0.0
+        # stacked = [close_delta[i:40 + i]
+        #            for i in range(len(df)-40)]
+        # stacked = pd.DataFrame(np.column_stack(stacked))
+        # target_delta = np.log(df.close.shift(-self.num_state_space)) - \
+        #                np.log(df.close)
+
         return stacked, target_delta
 
     def __len__(self):

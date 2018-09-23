@@ -1,33 +1,12 @@
-import gym
-import gym_exchange
-import random
-import numpy as np
 import pandas as pd
-import datetime
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import matplotlib.pyplot as plt
-import itertools
-import functools
 from functools import partial
-from copy import deepcopy
-import datetime
-from itertools import count
-import math
-import logging
-import matplotlib.pyplot as plt
 import numpy as np
-from random import choice
 import time
-from utils import device, train_dqn
-import seaborn as sns
-from collections import deque, Counter
-import torch.optim as optim
+from collections import Counter
 from supervised.environment import *
-from supervised.data import TickerData
-from torch.utils.data import Dataset, DataLoader
-
+from supervised.dataset import TickerData
+from torch.utils.data import DataLoader
 
 
 def train_validate_split(length, split_pct=PCT_TRAIN):
@@ -64,12 +43,26 @@ def get_dl(ticker, num_state_space, batch_size):
     return train_dataloader, val_dataloader
 
 
+# Need to create inputs to `get_dl`... look at `Fix here:82`
 # models can be multiples, so are criterions, optimizers, schedulers...
 def train_model(models, criterions, optimizers, schedulers, num_epochs=5):
+
+    def count_outcomes(outs_list, counters_list):
+        # Record keeping for counting the max arguments
+        for out, counter in zip(outs_list, counters_list):
+            # out is from a batch, so sort by index 1
+            # argmax can be used, but for later uses, just sort it...
+            idxs = out.sort(1, descending=True)[1][:, 0].tolist()
+            for idx in idxs:
+                counter[idx] += 1
+        return counters_list
+
     since = time.time()
 
     if not hasattr(models, '__iter__'):
         models, criterions, optimizers, schedulers = [models], [criterions], [optimizers], [schedulers]
+
+    counters = [Counter() for _ in range(len(models))]
 
     for epoch in range(num_epochs):
         print('-' * 10)
@@ -77,6 +70,7 @@ def train_model(models, criterions, optimizers, schedulers, num_epochs=5):
         print('-' * 10)
 
         for phase in ['train', 'validate']:
+
             if phase == 'train':
                 for scheduler, model in zip(schedulers, models):
                     scheduler.step()
@@ -101,6 +95,8 @@ def train_model(models, criterions, optimizers, schedulers, num_epochs=5):
 
                 outs = [model(x) for model in models]
 
+                counters = count_outcomes(outs, counters)
+
                 losses = [criterion(out, y.squeeze())
                           for criterion, out in zip(criterions, outs)]
 
@@ -109,12 +105,10 @@ def train_model(models, criterions, optimizers, schedulers, num_epochs=5):
                         loss.backward(retain_graph=True)
                         optimizer.step()
 
-                # I want to see outs at some point...
-
-                for loss, running_loss in zip(losses, running_losses):
+                for loss, running_loss, counter in zip(losses, running_losses, counters):
                     running_loss += loss.item() * x.size(0)
-                    print(' Average loss: {:.4f}'.format(running_loss.item() /
-                                                         (x.size(0) * (cur_idx + 1))))
+                    print('\rAverage loss: {:.4f}, Outs count: {}'.format(running_loss.item()/(x.size(0)*(cur_idx + 1)),
+                                                                          counter), end='')
 
             # Could be ...
             # epoch_losses = [running_loss / len(dl) for running_loss in running_losses]

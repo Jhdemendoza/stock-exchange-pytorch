@@ -12,7 +12,7 @@ import numpy as np
 from random import choice
 import time
 from collections import deque
-from utils import ReplayMemory
+from reinforcement import ReplayMemory
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines import A2C

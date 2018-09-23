@@ -8,8 +8,8 @@ from run_exchange import RunExchange
 import torch
 import torch.optim as optim
 
-from utils.models_dqn import DuelingDQN
-from utils import ReplayMemory
+from reinforcement.models_dqn import DuelingDQN
+from reinforcement import ReplayMemory
 
 
 parser = argparse.ArgumentParser(description='Hyper-parameters for the DQN training')

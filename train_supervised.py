@@ -1,33 +1,9 @@
-import gym
-import gym_exchange
-import random
-import numpy as np
-import pandas as pd
-import datetime
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import matplotlib.pyplot as plt
-import itertools
-import functools
-from functools import partial
-from copy import deepcopy
-import datetime
-from itertools import count
-import math
-import logging
-import matplotlib.pyplot as plt
 import numpy as np
-from random import choice
-import time
-from utils import device, train_dqn
-import seaborn as sns
-from collections import deque, Counter
-from torch.utils.data import Dataset, DataLoader
 from torch import optim
-
-from supervised import *
-
+from supervised import train_model, Model
+from supervised.environment import *
 
 def train():
     gru_model = Model(1, 64, NUM_DISCRETE_RETURNS, BATCH_SIZE, 2).double().cuda()
@@ -39,7 +15,7 @@ def train():
     loss_fn = nn.CrossEntropyLoss()
 
     optimizer_fn = optim.SGD(gru_model.parameters(),
-                             lr=1e-7, momentum=0.9, weight_decay=1e-7)
+                             lr=1e-6, momentum=0.9, weight_decay=1e-7)
 
     def sin_lr(x):
         return np.abs(np.sin((x + 0.01) * 0.2))
