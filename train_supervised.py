@@ -5,6 +5,7 @@ from torch import optim
 from supervised import train_model, Model
 from supervised.environment import *
 
+
 def train():
     gru_model = Model(1, 64, NUM_DISCRETE_RETURNS, BATCH_SIZE, 2).double().cuda()
     try:

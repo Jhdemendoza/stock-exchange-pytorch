@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
-from reinforcement import train_dqn
+from reinforcement.train import train_dqn
 import math
 
 try:
@@ -101,8 +101,8 @@ class RunExchange:
 
         return episode_rewards, actions
 
-    # Refactor the damn name...
-    def run_exchange(self):
+    # Refactor the name...
+    def train_exchange(self):
 
         def adjust_epsilon():
             MULTIPLIER = 5.0

@@ -58,8 +58,8 @@ class TestTicker(unittest.TestCase):
         self.assertEqual(self.ticker.df.shape, (self.num_iter, 12))
 
     def test_steps(self):
-        self.assertEqual(np.sum(self.take_steps_yield_rewards()),
-                         np.sum(self.get_pnl_one_less()))
+        self.assertTrue(np.array_equal(self.take_steps_yield_rewards(),
+                                       self.get_pnl_one_less()))
         self.ticker.reset()
 
     def test_states_1(self):
