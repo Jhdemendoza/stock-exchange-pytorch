@@ -47,6 +47,8 @@ rules of the game.
 
 
 ### Future work
-Provide constraints to `gym_stock_exchange`. Provide `policy gradient` approaches 
-for the `agents`. Provide `portfolio` type of support by default in the `gym_stock_exchange`.
+* Provide constraints in holdings for `gym_stock_exchange`
+* Provide `policy gradient` approaches for the `agents` 
+* Provide `portfolio` type of support by default in the `gym_stock_exchange`
+* Provide `options` and `other derivatives` valuations through agents learning the payoff from those products
 
