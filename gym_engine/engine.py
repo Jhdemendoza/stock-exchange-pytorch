@@ -1,6 +1,7 @@
 import collections
 import datetime
 import itertools
+from itertools import count
 import functools
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,12 +13,13 @@ plt.ion()
 
 class Ticker:
     def __init__(self, ticker, start_date, num_days_iter,
-                 today=None, num_actions=3, test=False):
+                 today=None, num_actions=3, test=False,
+                 action_space_min=-1.0, action_space_max=1.0):
         self.ticker = str.upper(ticker)
         self.start_date = start_date
         self.num_days_iter = num_days_iter
         self.df, self.dates = self._load_df(test)
-        self.action_space = np.linspace(-1, 1, num_actions)
+        self.action_space = np.linspace(action_space_min, action_space_max, num_actions)
         self.today = 0 if today is None else today
         self._data_valid()
         self.current_position = self.accumulated_pnl = 0.0
@@ -119,7 +121,6 @@ class Ticker:
         # current_position = self.df.position[self.today-1]
         # return -1.0 <= current_position + self.action_space[action] <= 1.0
         # The above approach causes shitty troubles...
-        return True
 
     def reset(self):
         self.today = 0
@@ -151,11 +152,11 @@ def iterable(arg):
 
 class Engine:
     def __init__(self, tickers, start_date, num_days_iter,
-                 today=None, seed=None, action_space=3, render=False):
+                 today=None, seed=None, num_action_space=3, render=False, *args, **kwargs):
         if seed: np.random.seed(seed)
         if not iterable(tickers): tickers = [tickers]
         self.tickers = self._get_tickers(tickers, start_date, num_days_iter,
-                                         today, action_space)
+                                         today, num_action_space, *args, **kwargs)
         self.reset_game()
 
         if render:
@@ -168,8 +169,8 @@ class Engine:
         list(map(lambda ticker: ticker.reset(), self.tickers))
 
     def _get_tickers(self, tickers, start_date, num_days_iter,
-                     today, num_action_space):
-        return [Ticker(ticker, start_date, num_days_iter, today, num_action_space)
+                     today, num_action_space, *args, **kwargs):
+        return [Ticker(ticker, start_date, num_days_iter, today, num_action_space, *args, **kwargs)
                 for ticker in tickers]
 
     def _render(self, render):
@@ -205,6 +206,62 @@ class Engine:
         self._render(True)
 
     def __repr__(self):
-        tickers = [f'ticker_{i}:{ticker.ticker}, ' for i, ticker in enumerate(self.tickers)]
+        tickers = [f'ticker_{i}: {ticker.ticker}, ' for i, ticker in enumerate(self.tickers)]
         return str(tickers)
+
+    def _data_valid(self):
+        raise NotImplementedError
+
+
+class Portfolio(Engine):
+    def __init__(self, tickers, start_date, num_days_iter,
+                 today=None, seed=None, render=False,
+                 action_space_min=0.0, action_space_max=1.0):
+        num_action_space = len(tickers)
+        super().__init__(tickers, start_date, num_days_iter, today, seed, num_action_space, render,
+                         action_space_min=action_space_min, action_space_max=action_space_max)
+        self.action_space = np.linspace(action_space_min, action_space_max, num_action_space)
+        self.position_df = self._get_position_df(tickers, num_action_space, action_space_min, action_space_max)
+
+    # Returns a dataframe of all the possible position distributions
+    # positions are divided into increments inversely proportional to the length of tickers
+    def _get_position_df(self, tickers, num_action_spaces,
+                         action_space_min, action_space_max):
+
+        def all_possible_combinations(values, increase, proportion_remaining, idx, ret_list):
+            if idx == len(values) - 1:
+                values[idx] = max(0, proportion_remaining)
+                ret_list.append(list(values))
+                values[idx] = 0
+                return
+            for t in count():
+                add_to_this_idx = t * increase
+                if add_to_this_idx <= proportion_remaining:
+                    values[idx] = add_to_this_idx
+                    all_possible_combinations(values, increase,
+                                              proportion_remaining - add_to_this_idx, idx + 1, ret_list)
+                    values[idx] = 0.0
+                else:
+                    break
+
+        ticker_length = len(tickers)
+        inc = (action_space_max - action_space_min) / (num_action_spaces - 1)
+        so_far = [0.0 for _ in range(ticker_length)]
+        # Total positions sum to 1
+        ret, remain = [], 1.0
+        all_possible_combinations(so_far, inc, remain, 0, ret)
+        return pd.DataFrame(ret).T
+
+    def moves_available(self):
+        return self.position_df.shape[1]
+
+    def step(self, action_index):
+        assert 0 <= action_index < self.moves_available(), \
+            f'action_index: {action_index}, moves_avail: {self.moves_available()}'
+
+        positions = self.position_df[action_index]
+        actions = [np.argwhere(self.action_space == position).item()
+                   for position in positions]
+        return super(Portfolio, self).step(actions)
+
 

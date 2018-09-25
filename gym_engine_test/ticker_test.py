@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from gym_stock_exchange.engine import Engine, Ticker
+from gym_engine.engine import Engine, Ticker
 
 
 class TestTicker(unittest.TestCase):

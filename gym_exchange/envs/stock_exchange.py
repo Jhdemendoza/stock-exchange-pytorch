@@ -1,6 +1,6 @@
 import gym
 import gym.spaces as spaces
-from gym_exchange.engine import Engine
+from gym_engine.engine import Engine
 import numpy as np
 import pandas as pd
 
@@ -8,7 +8,7 @@ import pandas as pd
 class StockExchange(gym.Env):
     metadata = {'render.modes': ['human']}
 
-    tickers = 'aapl'
+    tickers = ['aapl']
     start_date = '2014-01-01'
     num_days_to_iterate = 1000
     num_state_space = 20
@@ -23,7 +23,7 @@ class StockExchange(gym.Env):
         self.observation_space = spaces.Box(-1.0, 10.0, (self.num_state_space, ), dtype=np.float)
         self.env = Engine(self.tickers, self.start_date, self.num_days_to_iterate,
                           self.today, seed,
-                          action_space=self.num_action_space, render=self.render)
+                          num_action_space=self.num_action_space, render=self.render)
         self.state = self.get_running_state()
         self.reset()
 

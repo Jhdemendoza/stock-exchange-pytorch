@@ -1,6 +1,6 @@
 import gym
 import gym.spaces as spaces
-from gym_stock_exchange.engine import Engine
+from gym_engine.engine import Engine
 
 
 class StockExchange(gym.Env):
@@ -16,7 +16,7 @@ class StockExchange(gym.Env):
         self.action_space = spaces.Discrete(num_action_space)
 
         self.env = Engine(tickers, start_date, num_iter_days, today, seed,
-                          action_space=num_action_space, render=render)
+                          num_action_space=num_action_space, render=render)
         self.reset()
 
     def step(self, actions):
