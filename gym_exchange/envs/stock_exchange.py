@@ -10,7 +10,7 @@ class StockExchange(gym.Env):
 
     # Keep tickers in a list or iterables...
     tickers = ['aapl', 'amd', 'msft', 'intc', 'd', 'sbux', 'atvi', 'ibm', 'ual', 'vrsn', 't', 'mcd', 'vz']
-    start_date = '2014-01-01'
+    start_date = '2013-09-15'
     num_days_to_iterate = 1000
     num_state_space = 20
     # if Portfolio, set it to length of tickers
@@ -49,7 +49,8 @@ class StockExchange(gym.Env):
                               num_action_space=self.num_action_space, render=self.render)
 
         self.action_space = spaces.Discrete(self.num_action_space)
-        self.observation_space = spaces.Box(-1.0, 2.0, (self.num_state_space, self.ticker_length), dtype=np.float)
+        self.observation_space = spaces.Box(-1.0, 2.0, (self.num_state_space,
+                                                        self.num_state_per_ticker * self.ticker_length), dtype=np.float)
         self.state = self.get_running_state()
         self.reset()
 
