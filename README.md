@@ -1,6 +1,6 @@
 # Stock-Exchange-Pytorch
-`stock-exchange-pytorch` implements some of the `deep learning` algorithms
-to be applied in financial markets with `pytorch`.
+`stock-exchange-pytorch` implements some `deep learning` algorithms
+to financial markets data with `pytorch`.
 Namely, `reinforcement learning` and  `supervised learning`
 are exploited.
 
@@ -8,7 +8,7 @@ Reinforcement Learning
 - [x] Deep Q Learning (DQN) [[1]](http://arxiv.org/abs/1312.5602), [[2]](https://www.nature.com/articles/nature14236)
 - [x] Double DQN [[3]](http://arxiv.org/abs/1509.06461)
 - [x] Dueling network DQN (Dueling DQN) [[4]](https://arxiv.org/abs/1511.06581)
-- [ ] Asynchronous Advantage Actor-Critic (A3C) [[5]](http://arxiv.org/abs/1602.01783)
+- [ ] Asynchronous Advantage Actor-Critic (A3C) or its variant (A2C) [[5]](http://arxiv.org/abs/1602.01783)
 - [ ] Proximal Policy Optimization Algorithms (PPO) [[6]](https://arxiv.org/abs/1707.06347)
 - [ ] Deep Deterministic Policy Gradient (DDPG) [[7]](http://arxiv.org/abs/1509.02971)
 
@@ -17,12 +17,15 @@ Supervised Learning
  a probabilistic sense [[8]](https://arxiv.org/abs/1406.1078)
 - [ ] Use `uber/pyro` or `pymc` to test other approaches of probabilistic programming
 
-### Requirements
-By default, it assumes you have installed `pytorch` as the name suggest. 
-It also assumes you have a decent `NVIDIA GPU`, and using `Python 3.5+`, and `pip install gym`
-as well if necessary.
+It comes with `market data` from [Investor's Exchange (IEX)](https://iextrading.com/).
+The actual data is in the `iexfinance` folder of this repository.
 
-Once `pytorch` is installed, you can run the following to train a demo `dueling DQN` with the 
+### Requirements
+By default, it assumes you have installed `pytorch` as the name suggests. 
+It also assumes you have a decent `NVIDIA GPU` with `Python 3.5+`, and `pip install gym`
+if necessary.
+
+You can run the following to train a demo `dueling DQN` with the 
 provided data.
 ```buildoutcfg
 python3 train_reinforce.py
@@ -47,8 +50,8 @@ rules of the game.
 
 
 ### Future work
-- [ ] Provide constraints in holdings for `gym_stock_exchange`
+- [x] Provide constraints in holdings for `gym_stock_exchange`
+- [x] Provide `portfolio` by default in the `gym_stock_exchange`
 - [ ] Provide `policy gradient` approaches for the `agents` 
-- [ ] Provide `portfolio` type of support by default in the `gym_stock_exchange`
 - [ ] Provide `options` and `other derivatives` valuations through agents learning the payoff from those products
 

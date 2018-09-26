@@ -48,7 +48,7 @@ class StockExchange(gym.Env):
                               self.today, seed,
                               num_action_space=self.num_action_space, render=self.render)
 
-        self.action_space = spaces.Discrete(self.num_action_space)
+        self.action_space = spaces.Discrete(self.env.moves_available())
         self.observation_space = spaces.Box(-1.0, 2.0, (self.num_state_space,
                                                         self.num_state_per_ticker * self.ticker_length), dtype=np.float)
         self.state = self.get_running_state()

@@ -54,13 +54,15 @@ class RunExchange:
 
     @classmethod
     def get_figure_and_axis(cls):
-        plt.style.use(['ggplot']) # 'fivethirtyeight'])
+        plt.style.use(['ggplot'])  # 'fivethirtyeight'])
         plt.ion()
         return plt.subplots(2, 1)
 
+    # *** 4. This is unnecessary
     def get_running_state(self):
-        return np.zeros(self.num_running_days) # .tolist()
+        return np.zeros(self.num_running_days)  # .tolist()
 
+    # *** 3. This is unnecessary
     def add_new_state(self, running_state_orig, new_state_to_add):
         if isinstance(new_state_to_add, list):
             new_state_to_add = new_state_to_add[0]
@@ -76,25 +78,31 @@ class RunExchange:
     # Refactor !!
     def test_exchange(self, testing_interval, no_action_index):
 
-        running_state = self.add_new_state(self.get_running_state(), self.env.reset())
+        # *** 5. This is unnecessary
+        # running_state = self.add_new_state(self.get_running_state(), self.env.reset())
+        state = self.env.reset()
 
         for _ in range(self.num_running_days - 1):
             next_state, reward, done, _ = self.env.step(no_action_index)
-            running_state = self.add_new_state(running_state, next_state)
-            assert reward == 0, f'Reward is somehow {reward}'
+            # *** 6. This is unnecessary
+            # running_state = self.add_new_state(running_state, next_state)
+            state = next_state
+            # assert reward == 0, f'Reward is somehow {reward}'
             # assert running_state[-1] == 0.0, f'Position is somehow {running_state[-1]}'
 
         episode_rewards = []
         actions = []
 
         for _ in range(testing_interval):
-            action = self.policy.act(running_state, 0.0)
+            action = self.policy.act(state, 0.0)
 
             next_state, reward, done, _ = self.env.step(action)
             self.env.render()
 
+            # *** 7. This is unnecessary
             # update running_state for the next use
-            running_state = self.add_new_state(running_state, next_state)
+            # running_state = self.add_new_state(running_state, next_state)
+            state = next_state
             episode_rewards += [reward]
             actions += [action]
 
@@ -104,9 +112,9 @@ class RunExchange:
     def train_exchange(self):
 
         def adjust_epsilon():
-            MULTIPLIER = 5.0
+            MULTIPLIER = 3.0
             self.epsilon = self.min_epsilon + (self.max_epsilon - self.min_epsilon) * \
-                                                math.exp(-1.0 * i_episode * MULTIPLIER / self.n_train)
+                           math.exp(-1.0 * i_episode * MULTIPLIER / self.n_train)
 
         def log_(episode_loss_avg, episode_reward, action_counters):
             logger.info('---------------------')
@@ -134,33 +142,41 @@ class RunExchange:
             episode_reward = 0.0
             actions = Counter()
 
-            running_state = self.add_new_state(self.get_running_state(), self.env.reset())
+            # *** 1. This is unnecessary
+            # running_state = self.add_new_state(self.get_running_state(), self.env.reset())
+            # *** should be like
+            state = self.env.reset()
 
             for _ in count(1):
 
                 adjust_epsilon()
 
-                action = self.policy.act(running_state, self.epsilon)
+                action = self.policy.act(state, self.epsilon)
                 actions[action] += 1
 
                 next_state, reward, done, info = self.env.step(action)
 
                 # copy t_0 so that we don't change t_1 variable
-                running_state_0 = deepcopy(running_state)
-                running_state = self.add_new_state(running_state, next_state)
+                # running_state_0 = deepcopy(running_state)
+                # *** 2. This is unnecessary
+                # running_state = self.add_new_state(running_state, next_state)
 
+                # *** 5. This is unnecessary
                 # Error Check!
                 # make it a series then del?
-                assert not pd.Series(running_state).hasnans, pd.Series(running_state).isnull()
-                assert running_state_0[1:-1] == running_state[:-2], \
-                        '{} vs {}'.format(running_state_0[1:], running_state[:-1])
+                # assert not pd.Series(running_state).hasnans, pd.Series(running_state).isnull()
+                # assert running_state_0[1:-1] == running_state[:-2], \
+                #         '{} vs {}'.format(running_state_0[1:], running_state[:-1])
 
-                self.replay_memory.push(running_state_0, action, running_state, reward)
+                self.replay_memory.push(state, action, next_state, reward)
+                state = next_state
+
                 episode_reward += reward
 
                 if self.mode == 'train':
                     loss = train_dqn(self.policy, self.target, self.replay_memory,
-                                     self.batch_size, self.optimizer, self.gamma, self.double_dqn)
+                                     self.batch_size, self.optimizer, self.gamma,
+                                     self.double_dqn)
                     if loss is not None:
                         episode_loss += [loss.item()]
 
@@ -175,8 +191,6 @@ class RunExchange:
                         self.target.load_state_dict(self.policy.state_dict())
 
                     del episode_loss
-                    del running_state
 
                     break
-
 
