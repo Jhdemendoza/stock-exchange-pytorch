@@ -3,7 +3,8 @@ import torch
 import torch.nn as nn
 from reinforcement.environment import device
 
-FEATURES = 128
+FEATURES = 64
+NUM_LAYERS = 2
 KERNEL_SIZE = (4, 8)
 
 
@@ -20,37 +21,31 @@ class DuelingDQN(nn.Module):
         self.n_action_space = n_action_space
 
         self.feature = nn.Sequential(
-            nn.Conv2d(1,        FEATURES, KERNEL_SIZE),
-            nn.ReLU(),
-            nn.Conv2d(FEATURES, FEATURES, KERNEL_SIZE),
-            nn.ReLU(),
-            nn.Conv2d(FEATURES, FEATURES, KERNEL_SIZE),
-            nn.ReLU(),
-            Flatten(),
+            nn.GRU(n_input_features, FEATURES, NUM_LAYERS),
         )
 
         self.value = nn.Sequential(
-            nn.Linear(43648, 1024),
+            nn.Linear(FEATURES, FEATURES),
             nn.ReLU(),
-            nn.Linear(1024, 32),
+            nn.Linear(FEATURES, 32),
             nn.ReLU(),
             nn.Linear(32, 1)
         )
 
         self.advantage = nn.Sequential(
-            nn.Linear(43648, 1024),
+            nn.Linear(FEATURES, FEATURES),
             nn.ReLU(),
-            nn.Linear(1024, 32),
+            nn.Linear(FEATURES, 32),
             nn.ReLU(),
             nn.Linear(32, n_action_space)
         )
 
-    def forward(self, x):
-        # Some thing is wrong... Need to comeback to this...
-        if x.dim() == 3:
-            x.unsqueeze_(1)
+    def forward_feature(self, x):
+        x, h1 = self.feature(x)
+        return x[:, -1, :]
 
-        x = self.feature(x)
+    def forward(self, x):
+        x = self.forward_feature(x)
         value = self.value(x)
         advantage = self.advantage(x)
         return value + advantage - advantage.mean()
@@ -62,11 +57,10 @@ class DuelingDQN(nn.Module):
         if not torch.is_tensor(x):
             x = torch.tensor([x], dtype=torch.float32, device=device)
 
-        assert x.dim() == 3, 'Somehow, x.shape is:{}'.format(x.shape)
-        x.unsqueeze_(1)
+        assert x.dim() == 3, 'Somehow, x.shape is: {}'.format(x.shape)
 
         if np.random.rand() > epsilon:
-            x = self.feature(x).detach()
+            x = self.forward_feature(x).detach()
             # print(self.advantage(x).detach().sort(dim=1, descending=True))
             x = self.advantage(x).detach().argmax().item()
             return x

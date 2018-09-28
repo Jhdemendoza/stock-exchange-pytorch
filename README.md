@@ -8,17 +8,18 @@ Reinforcement Learning
 - [x] Deep Q Learning (DQN) [[1]](http://arxiv.org/abs/1312.5602), [[2]](https://www.nature.com/articles/nature14236)
 - [x] Double DQN [[3]](http://arxiv.org/abs/1509.06461)
 - [x] Dueling network DQN (Dueling DQN) [[4]](https://arxiv.org/abs/1511.06581)
-- [ ] Asynchronous Advantage Actor-Critic (A3C) or its variant (A2C) [[5]](http://arxiv.org/abs/1602.01783)
-- [ ] Proximal Policy Optimization Algorithms (PPO) [[6]](https://arxiv.org/abs/1707.06347)
-- [ ] Deep Deterministic Policy Gradient (DDPG) [[7]](http://arxiv.org/abs/1509.02971)
+- [ ] Deep Deterministic Policy Gradient (DDPG) [[5]](http://arxiv.org/abs/1509.02971)
+- [ ] Asynchronous Advantage Actor-Critic (A3C) or its variant (A2C) [[6]](http://arxiv.org/abs/1602.01783)
+- [ ] Proximal Policy Optimization Algorithms (PPO) [[7]](https://arxiv.org/abs/1707.06347)
 
 Supervised Learning
 - [x] Gated Recurrent Unit (GRU) approach to fit distribution of returns in 
  a probabilistic sense [[8]](https://arxiv.org/abs/1406.1078)
 - [ ] Use `uber/pyro` or `pymc` to test other approaches of probabilistic programming
 
-It comes with `market data` from [Investor's Exchange (IEX)](https://iextrading.com/).
-The actual data is in the `iexfinance` folder of this repository.
+Data
+- [x] `market data` from [Investor's Exchange (IEX)](https://iextrading.com/).
+The actual data is in `iexfinance` folder of this repository.
 
 ### Requirements
 By default, it assumes you have installed `pytorch` as the name suggests. 

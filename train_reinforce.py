@@ -38,9 +38,10 @@ if __name__ == '__main__':
     env = gym.make('game-stock-exchange-v0')
 
     args.num_action_space = env.moves_available()
+    args.n_input_features = 52
 
-    policy_q, target_q = DuelingDQN(args.num_running_days, args.num_action_space).cuda(), \
-                         DuelingDQN(args.num_running_days, args.num_action_space).cuda()
+    policy_q, target_q = DuelingDQN(args.n_input_features, args.num_action_space).cuda(), \
+                         DuelingDQN(args.n_input_features, args.num_action_space).cuda()
 
     try:
         policy_q.load_state_dict(torch.load('my_duel_policy_vanilla.pt'))
