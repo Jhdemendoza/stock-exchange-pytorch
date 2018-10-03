@@ -3,10 +3,10 @@ import gym
 import gym_exchange
 
 from reinforcement.run_exchange import RunExchange
+from reinforcement.models_dqn import DuelingDQN
 
 import torch
 
-from reinforcement.models_dqn import DuelingDQN
 
 
 parser = argparse.ArgumentParser(description='Hyper-parameters for the DQN training')

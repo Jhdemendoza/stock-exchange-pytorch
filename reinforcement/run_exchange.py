@@ -58,37 +58,14 @@ class RunExchange:
         plt.ion()
         return plt.subplots(2, 1)
 
-    # *** 4. This is unnecessary
-    def get_running_state(self):
-        return np.zeros(self.num_running_days)  # .tolist()
-
-    # *** 3. This is unnecessary
-    def add_new_state(self, running_state_orig, new_state_to_add):
-        if isinstance(new_state_to_add, list):
-            new_state_to_add = new_state_to_add[0]
-        running_state = pd.Series(running_state_orig).shift(-1)
-        # Assign new price to index == last_elem - 1
-        running_state.iloc[-1] = new_state_to_add.item(0)
-        # running_state.iloc[-2] = new_state_to_add.item(0)
-        # Assign new position to index == last_elem
-        # running_state.iloc[-1] = new_state_to_add.item(1)
-        assert len(running_state_orig) == len(running_state)
-        return running_state.tolist()
-
     # Refactor !!
     def test_exchange(self, testing_interval, no_action_index):
 
-        # *** 5. This is unnecessary
-        # running_state = self.add_new_state(self.get_running_state(), self.env.reset())
         state = self.env.reset()
 
         for _ in range(self.num_running_days - 1):
             next_state, reward, done, _ = self.env.step(no_action_index)
-            # *** 6. This is unnecessary
-            # running_state = self.add_new_state(running_state, next_state)
             state = next_state
-            # assert reward == 0, f'Reward is somehow {reward}'
-            # assert running_state[-1] == 0.0, f'Position is somehow {running_state[-1]}'
 
         episode_rewards = []
         actions = []
@@ -99,9 +76,6 @@ class RunExchange:
             next_state, reward, done, _ = self.env.step(action)
             self.env.render()
 
-            # *** 7. This is unnecessary
-            # update running_state for the next use
-            # running_state = self.add_new_state(running_state, next_state)
             state = next_state
             episode_rewards += [reward]
             actions += [action]
@@ -142,9 +116,6 @@ class RunExchange:
             episode_reward = 0.0
             actions = Counter()
 
-            # *** 1. This is unnecessary
-            # running_state = self.add_new_state(self.get_running_state(), self.env.reset())
-            # *** should be like
             state = self.env.reset()
 
             for _ in count(1):
@@ -156,19 +127,7 @@ class RunExchange:
 
                 next_state, reward, done, info = self.env.step(action)
 
-                # copy t_0 so that we don't change t_1 variable
-                # running_state_0 = deepcopy(running_state)
-                # *** 2. This is unnecessary
-                # running_state = self.add_new_state(running_state, next_state)
-
-                # *** 5. This is unnecessary
-                # Error Check!
-                # make it a series then del?
-                # assert not pd.Series(running_state).hasnans, pd.Series(running_state).isnull()
-                # assert running_state_0[1:-1] == running_state[:-2], \
-                #         '{} vs {}'.format(running_state_0[1:], running_state[:-1])
-
-                self.replay_memory.push(state, action, next_state, reward)
+                self.replay_memory.push(state, action, reward, next_state)
                 state = next_state
 
                 episode_reward += reward

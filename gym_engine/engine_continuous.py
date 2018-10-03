@@ -8,7 +8,7 @@ from gym_engine.utils import iterable
 plt.ion()
 
 
-class Engine:
+class EngineContinuous:
     def __init__(self, tickers, start_date, num_days_iter,
                  today=None, seed=None, num_action_space=3,
                  render=False, *args, **kwargs):

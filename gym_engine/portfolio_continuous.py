@@ -5,7 +5,7 @@ from gym_engine.engine import Engine
 from gym_engine.utils import iterable
 
 
-class Portfolio(Engine):
+class PortfolioContinuous(Engine):
     def __init__(self, tickers, start_date, num_days_iter,
                  today=None, seed=None, render=False,
                  action_space_min=0.0, action_space_max=1.0):
