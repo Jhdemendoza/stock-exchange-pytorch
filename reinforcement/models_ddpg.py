@@ -1,80 +1,94 @@
-import gym
-import gym_exchange
-import random
-import numpy as np
-import pandas as pd
-import datetime
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import matplotlib.pyplot as plt
-import itertools
-import functools
-from functools import partial
-from copy import deepcopy
-import datetime
-from itertools import count
-import math
-import logging
-import matplotlib.pyplot as plt
 import numpy as np
-from random import choice
-import time
-from reinforcement import device, train_dqn
-import seaborn as sns
-from collections import deque, Counter
-from torch.utils.data import Dataset, DataLoader
-import torch.optim as optim
+from reinforcement import device
+from gym_engine.utils import iterable
 
 
 from torch.optim import Adam
-from reinforcement import ReplayMemoryWithDone
-from reinforcement import TransitionDone
-from reinforcement.train import load_game_from_replay_memory, batch_to_tensor
 from reinforcement.utils import Update, OUNoise
 
 
 class Actor(nn.Module):
-    def __init__(self, num_input, num_hidden, num_action_space):
+    def __init__(self, num_input, num_hidden, num_action_space, init_w=3e-3):
         super(Actor, self).__init__()
-        self.s1 = nn.Sequential(
-            nn.Linear(num_input, num_hidden),
-            nn.ReLU(inplace=True))
+
+        self.s0 = None
+        if iterable(num_input):
+            len_num_input = len(num_input)
+            if len_num_input == 2:
+                self.s0 = nn.LSTM(num_input[1], num_hidden)
+            elif len_num_input == 1:
+                num_input = num_input[0]
+
+        if self.s0 is None:
+            self.s1 = nn.Sequential(
+                nn.Linear(num_input, num_hidden),
+                nn.LayerNorm(num_hidden),
+                nn.ReLU(inplace=True))
+
         self.s2 = nn.Sequential(
             nn.Linear(num_hidden, num_hidden),
+            nn.LayerNorm(num_hidden),
             nn.ReLU(inplace=True))
         self.out = nn.Linear(num_hidden, num_action_space)
         # https://github.com/ikostrikov/pytorch-ddpg-naf/blob/master/ddpg.py
         # We are doing tanh afterall!
         self.out.weight.data.mul_(0.1)
         self.out.bias.data.mul_(0.1)
+        # https://github.com/pemami4911/awesome-hyperparams
+        # weight uses uniform for low dim inputs...
 
     def forward(self, x):
-        x = self.s1(x)
+        if self.s0:
+            x = self.s0(x)[0][:, -1, :]
+        else:
+            x = self.s1(x)
         x = self.s2(x)
         return F.tanh(self.out(x))
 
     def select_action(self, state):
         state = torch.FloatTensor(state).unsqueeze(0).to(device)
         action = self.forward(state).detach()
-        return action.cpu().numpy().item()
+        return action.cpu().numpy()[0]
 
 
 class Critic(nn.Module):
-    def __init__(self, num_input, num_hidden, num_action_space):
+    def __init__(self, num_input, num_hidden, num_action_space, init_w=3e-3):
         super(Critic, self).__init__()
+
+        self.s0 = None
+        if iterable(num_input):
+            len_num_input = len(num_input)
+            if len_num_input == 2:
+                self.s0 = nn.LSTM(num_input[1], num_hidden)
+                # Taking leeway
+                #    Note: num_input is used in s1, so doing this...
+                num_input = num_hidden
+            if len_num_input == 1:
+                num_input = num_input[0]
+
         self.s1 = nn.Sequential(
             nn.Linear(num_input + num_action_space, num_hidden),
+            nn.LayerNorm(num_hidden),
             nn.ReLU(inplace=True))
+
         self.s2 = nn.Sequential(
             nn.Linear(num_hidden, num_hidden),
+            nn.LayerNorm(num_hidden),
             nn.ReLU(inplace=True))
+
         self.value = nn.Linear(num_hidden, 1)
         self.value.weight.data.mul_(0.1)
         self.value.bias.data.mul_(0.1)
 
     def forward(self, state, action):
-        x = torch.cat((state, action), 1)
+        if self.s0:
+            x = self.s0(state)[0][:, -1, :]
+        else:
+            x = state
+        x = torch.cat((x, action), 1)
         x = self.s1(x)
         x = self.s2(x)
         return self.value(x)
@@ -93,8 +107,8 @@ class DDPG(nn.Module):
         self.critic_target = Critic(num_input, num_hidden, num_action_space)
         Update.hard_update(self.critic, self.critic_target)
 
-        self.optim_actor = Adam(self.actor.parameters(), lr=args.actor_lr)
-        self.optim_critic = Adam(self.critic.parameters(), lr=args.critic_lr)
+        self.optim_actor = Adam(self.actor.parameters(), lr=args.actor_learning_rate)
+        self.optim_critic = Adam(self.critic.parameters(), lr=args.critic_learning_rate)
 
         # add options through args at some point
         self.noise = OUNoise(gym_env.action_space)
@@ -109,9 +123,6 @@ class DDPG(nn.Module):
         self.actor.train()
         return np.clip(action, -1.0, 1.0)
 
-    def select_action_numpy(self, state, t=0):
-        return self.select_action(state, t)
-
     def reset_noise(self):
         self.noise.reset()
 
@@ -125,7 +136,10 @@ class DDPG(nn.Module):
     def get_value_loss(self, state, action, reward, next_state, done):
         next_action = self.actor_target(next_state).detach()
         target_value = self.critic_target(next_state, next_action).detach()
-        expected_value = (reward + (1.0 - done) * target_value * self.args.gamma).cuda()
+
+        #                                                   cuda???
+        expected_value = (reward + (1.0 - done) \
+                          * target_value * self.args.gamma).cuda()
 
         pred_value = self.critic(state, action)
 

@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn.functional as F
 
@@ -75,3 +76,5 @@ def train_ddpg(ddpg_agent, replay_buffer, batch_size, num_iteration=0):
     # This can't be the best way...
     # Need to think about what's the best design...
     ddpg_agent.update(value_loss, policy_loss)
+
+    return value_loss, policy_loss

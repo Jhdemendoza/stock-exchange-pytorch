@@ -1,9 +1,10 @@
+import gym
 import numpy as np
 
 
 # Modified, originally from
 # https://github.com/vitchyr/rlkit/blob/master/rlkit/exploration_strategies/ou_strategy.py
-class OUNoise(object):
+class OUNoise:
     def __init__(self, gym_env_action_space, mu=0.0, theta=0.15,
                  max_sigma=0.3, min_sigma=0.3, decay_period=100000):
         self.mu = mu
@@ -49,3 +50,18 @@ class Update:
     @classmethod
     def hard_update(cls, source, target):
         target.load_state_dict(source.state_dict())
+
+
+class NormalizedActions(gym.ActionWrapper):
+    def lb_ub(self):
+        return self.action_space.low, self.action_space.high
+
+    def action(self, action):
+        lb, ub = self.lb_ub()
+        scaled_action = lb + (action + 1.0) * (ub - lb) / 2
+        return np.clip(scaled_action, lb, ub)
+
+    def reverse_action(self, scaled_action):
+        lb, ub = self.lb_ub()
+        action = 2 * (scaled_action - lb) / (ub - lb) - 1
+        return np.clip(action, lb, ub)

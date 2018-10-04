@@ -12,8 +12,8 @@ class StockExchangeContinuous(gym.Env):
     tickers = ['aapl', 'amd', 'msft', 'intc', 'd', 'sbux', 'atvi',
                'ibm', 'ual', 'vrsn', 't', 'mcd', 'vz']
     start_date = '2013-09-15'
-    num_days_to_iterate = 1000
-    num_state_space = 20
+    num_days_to_iterate = 100
+    num_days_in_state = 20
     # if Portfolio, set it to length of tickers
     # else, must be odd
     num_action_space = len(tickers)
@@ -22,7 +22,7 @@ class StockExchangeContinuous(gym.Env):
     today = 0
     render = False
     # set to None when not using Portfolio
-    action_space_min = 0.0
+    action_space_min = -1.0
     action_space_max = 1.0
     # For each ticker state: ohlc
     num_state_per_ticker = 4
@@ -52,7 +52,8 @@ class StockExchangeContinuous(gym.Env):
         self.action_space = spaces.Box(self.action_space_min, self.action_space_max,
                                        (self.num_action_space, ), np.float32)
         self.observation_space = spaces.Box(-1.0, 1.0,
-                                            (self.num_state_space, self.num_action_space),
+                                            (self.num_days_in_state,
+                                             self.num_action_space * self.num_state_per_ticker),
                                             dtype=np.float32)
         self.state = self.get_running_state()
         self.reset()
@@ -72,7 +73,7 @@ class StockExchangeContinuous(gym.Env):
         self.env.render()
 
     def _initialize_state(self):
-        for _ in range(self.num_state_space - 1):
+        for _ in range(self.num_days_in_state - 1):
             if self.portfolio:
                 zero_action = [0.0] * self.num_action_space
                 next_state, reward, done, _ = self.step(zero_action)
@@ -84,7 +85,7 @@ class StockExchangeContinuous(gym.Env):
         return repr(self.env)
 
     def get_running_state(self):
-        return np.zeros((self.num_state_space, self.num_state_per_ticker * self.num_action_space))
+        return np.zeros((self.num_days_in_state, self.num_state_per_ticker * self.num_action_space))
 
     def add_new_state(self, new_states_to_add):
         assert isinstance(new_states_to_add, list), type(new_states_to_add)

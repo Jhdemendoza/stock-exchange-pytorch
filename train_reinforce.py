@@ -67,7 +67,7 @@ if __name__ == '__main__':
                          gamma=args.gamma, mode=args.mode)
 
     try:
-        player.train_exchange()
+        player.train_exchange_dqn()
     except KeyboardInterrupt:
         print('\nKeyboard Interrupt!!!')
     finally:

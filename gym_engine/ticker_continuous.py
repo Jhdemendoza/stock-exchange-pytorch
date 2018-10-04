@@ -95,10 +95,7 @@ class TickerContinuous:
             return 0.0, True
 
     def valid_action(self, action):
-        if self.today == 0: return True
-        # current_position = self.df.position[self.today-1]
-        # return -1.0 <= current_position + self.action_space[action] <= 1.0
-        # The above approach causes shitty troubles...
+        return self.action_space.low <= action <= self.action_space.high
 
     def reset(self):
         self.today = 0
