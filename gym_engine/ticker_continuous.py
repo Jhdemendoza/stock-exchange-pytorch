@@ -1,3 +1,4 @@
+import gym
 import datetime
 import matplotlib.pyplot as plt
 import numpy as np
@@ -8,6 +9,8 @@ plt.ion()
 
 
 class TickerContinuous:
+    # Don't delete num_actions just yet, need to go fix all others..
+    #   Especially when constructing in Engine
     def __init__(self, ticker, start_date, num_days_iter,
                  today=None, num_actions=3, test=False,
                  action_space_min=-1.0, action_space_max=1.0):
@@ -15,7 +18,8 @@ class TickerContinuous:
         self.start_date = start_date
         self.num_days_iter = num_days_iter
         self.df, self.dates = self._load_df(test)
-        self.action_space = np.linspace(action_space_min, action_space_max, num_actions)
+        self.action_space = gym.spaces.Box(action_space_min, action_space_max,
+                                           (1, ), dtype=np.float32)
         self.today = 0 if today is None else today
         self._data_valid()
         self.current_position = self.accumulated_pnl = 0.0
@@ -82,31 +86,9 @@ class TickerContinuous:
 
             # Think about accumulating the scores...
             self.accumulated_pnl += reward
-
-            self.df.position[self.today] = self.current_position = self.action_space[action]
-
-            # new_position_delta = self.action_space[action] if self.today == 0 or \
-            #                                                   self.valid_action(action) else 0.0
-            # self.current_position = self.df.position[self.today] = \
-            #                                 new_position_delta if self.today == 0 else \
-            #                                 self.df.position[self.today-1] + new_position_delta
-
-            # If we penalize invalid moves, the model learns to avoid it, but this deters
-            #     learning experiences. It only focuses on position such that it avoids penalty.
-            #     Penalty of -0.1 is certainly too high for this matter
-            #
-            # if self.valid_action(action):
-            #     new_position_delta = self.action_space[action]
-            #     self.current_position = self.df.position[self.today] = \
-            #                                     new_position_delta if self.today == 0 else \
-            #                                     self.df.position[self.today-1] + new_position_delta
-            #
-            # else:
-            #     self.current_position = self.df.position[self.today] = self.df.position[self.today-1]
-            #     reward = -0.1 # This is tricky, should consider the distribution of the returns
-
+            self.df.position[self.today] = self.current_position = action
             self.today += 1
-            # Think about how to re-allocate the reward
+
             return reward, False
         else:
             self.current_position = 0.0

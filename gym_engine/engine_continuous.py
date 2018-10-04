@@ -2,7 +2,7 @@ import itertools
 import functools
 import matplotlib.pyplot as plt
 import numpy as np
-from gym_engine.ticker import Ticker
+from gym_engine.ticker_continuous import TickerContinuous
 from gym_engine.utils import iterable
 
 plt.ion()
@@ -30,7 +30,7 @@ class EngineContinuous:
 
     def _get_tickers(self, tickers, start_date, num_days_iter,
                      today, num_action_space, *args, **kwargs):
-        return [Ticker(ticker, start_date, num_days_iter, today, num_action_space, *args, **kwargs)
+        return [TickerContinuous(ticker, start_date, num_days_iter, today, num_action_space, *args, **kwargs)
                 for ticker in tickers]
 
     def _render(self, render):
