@@ -8,14 +8,12 @@ import pandas as pd
 class StockExchangeContinuous(gym.Env):
     metadata = {'render.modes': ['human']}
 
-    # Keep tickers in a list or iterables...
+    # Keep tickers in a list or an iterable...
     tickers = ['aapl', 'amd', 'msft', 'intc', 'd', 'sbux', 'atvi',
                'ibm', 'ual', 'vrsn', 't', 'mcd', 'vz']
     start_date = '2013-09-15'
     num_days_to_iterate = 100
     num_days_in_state = 20
-    # if Portfolio, set it to length of tickers
-    # else, must be odd
     num_action_space = len(tickers)
     # no_action_index is truly no_action only if it's not a Portfolio
     no_action_index = num_action_space//2
@@ -30,7 +28,7 @@ class StockExchangeContinuous(gym.Env):
     def __init__(self, seed=None):
 
         # Could manually throw in options eventually...
-        self.portfolio = self.num_action_space> 1
+        self.portfolio = self.num_action_space > 1
         self._seed = seed
 
         if self.portfolio:

@@ -1,6 +1,6 @@
 # Stock-Exchange-Pytorch
 `stock-exchange-pytorch` implements some `deep learning` algorithms
-to financial markets data in `pytorch`.
+to financial market data in `pytorch`.
 Namely, `reinforcement learning` and  `supervised learning`
 are exploited.
 
@@ -50,15 +50,16 @@ If all went well, you might see something like this:
 
 ### gym_stock_exchange [link](https://github.com/wbaik/gym-stock-exchange)
 This is an `environment` which depends on `open-ai`'s [gym](https://github.com/openai/gym).
-It comes in two flavors. One is `discrete` action space, and another `continuous`.
+It supports single stock or a portfolio. For `action spaces` , both `continuous` and
+`discrete` are supported.
 Obviously, `DDPG` uses `continuous`, and `DQN`s uses discrete settings.
-You can check out the design for [discrete](gym_exchange/envs/stock_exchange.py) 
-and [continuous](gym_exchange/envs/stock_exchange_continuous.py) cases.
+Code for [continuous](gym_exchange/envs/stock_exchange_continuous.py) and
+[discrete](gym_exchange/envs/stock_exchange.py) are found here.
 
 
 ### Future work
 - [x] Provide constraints in holdings for `gym_stock_exchange`
 - [x] Provide `portfolio` by default in the `gym_stock_exchange`
-- [ ] Implement `PPO` or other `policy gradient` methods
+- [ ] Implement `PPO` and other `policy gradient` methods
 - [ ] Provide `options` and `other derivatives` valuations
 - [ ] Provide more thorough support for `supervised learnings`
