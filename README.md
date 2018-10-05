@@ -1,6 +1,6 @@
 # Stock-Exchange-Pytorch
 
-<img width="160px" height="20px" href="https://github.com/pytorch/pytorch" src="https://pp.userapi.com/c847120/v847120960/82b4/xGBK9pXAkw8.jpg">
+<img width="180px" height="26px" href="https://github.com/pytorch/pytorch" src="https://pp.userapi.com/c847120/v847120960/82b4/xGBK9pXAkw8.jpg">
 
 `stock-exchange-pytorch` implements some `deep learning` algorithms
 to financial market data in `pytorch`.
