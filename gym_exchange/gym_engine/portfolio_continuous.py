@@ -1,10 +1,10 @@
 import numpy as np
-from gym_engine.engine_continuous import EngineContinuous
+from gym_exchange.gym_engine.engine_continuous import EngineContinuous
 import gym
 
 
 # It looks like this might not be necessary at all...
-# Since we've changed a number of them...
+# Since we've changed a number of things...
 class PortfolioContinuous(EngineContinuous):
     def __init__(self, tickers, start_date, num_days_iter,
                  today=None, seed=None, render=False,

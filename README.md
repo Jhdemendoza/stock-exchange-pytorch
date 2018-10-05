@@ -52,7 +52,8 @@ If all went well, you might see something like this:
 This is an `environment` which depends on `open-ai`'s [gym](https://github.com/openai/gym).
 It comes in two flavors. One is `discrete` action space, and another `continuous`.
 Obviously, `DDPG` uses `continuous`, and `DQN`s uses discrete settings.
-You can check out the design for [discrete](url_disc) and [continuous](url_cont) cases.
+You can check out the design for [discrete](gym_exchange/envs/stock_exchange.py) 
+and [continuous](gym_exchange/envs/stock_exchange_continuous.py) cases.
 
 
 ### Future work

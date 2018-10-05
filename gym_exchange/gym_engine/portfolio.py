@@ -1,8 +1,8 @@
 from itertools import count
 import numpy as np
 import pandas as pd
-from gym_engine.engine import Engine
-from gym_engine.utils import iterable
+from gym_exchange.gym_engine import Engine
+from gym_exchange.gym_engine import iterable
 
 
 class Portfolio(Engine):

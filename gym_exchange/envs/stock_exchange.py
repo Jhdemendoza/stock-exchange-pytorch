@@ -1,6 +1,6 @@
 import gym
 import gym.spaces as spaces
-from gym_engine import Engine, Portfolio
+from gym_exchange.gym_engine import Engine, Portfolio
 import numpy as np
 import pandas as pd
 

@@ -2,8 +2,8 @@ import itertools
 import functools
 import matplotlib.pyplot as plt
 import numpy as np
-from gym_engine.ticker_continuous import TickerContinuous
-from gym_engine.utils import iterable
+from gym_exchange.gym_engine import TickerContinuous
+from gym_exchange.gym_engine import iterable
 
 plt.ion()
 
