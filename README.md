@@ -5,7 +5,7 @@
 `stock-exchange-pytorch` implements some `deep learning` algorithms
 to financial market data in `pytorch`.
 Namely, `reinforcement learning` and  `supervised learning`
-are exploited, both for single stock and a portfolio.
+are exploited, for a single stock or a portfolio.
 
 Reinforcement Learning
 - [x] Deep Q Learning (DQN) [[1]](http://arxiv.org/abs/1312.5602), [[2]](https://www.nature.com/articles/nature14236)
