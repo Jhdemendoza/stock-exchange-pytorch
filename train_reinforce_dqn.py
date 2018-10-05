@@ -33,7 +33,7 @@ args = parser.parse_args()
 
 if __name__ == '__main__':
 
-    assert args.mode == 'train', '--- Currently not supported. Use test_reinforce.py instead ---'
+    assert args.mode == 'train', '--- Currently not supported. Use test_reinforce_dqn.py instead ---'
 
     env = gym.make('game-stock-exchange-v0')
 

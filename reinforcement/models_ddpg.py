@@ -11,7 +11,7 @@ from reinforcement.utils import Update, OUNoise
 
 
 class Actor(nn.Module):
-    def __init__(self, num_input, num_hidden, num_action_space, init_w=3e-3):
+    def __init__(self, num_input, num_hidden, num_action_space):
         super(Actor, self).__init__()
 
         self.s0 = None
@@ -55,7 +55,7 @@ class Actor(nn.Module):
 
 
 class Critic(nn.Module):
-    def __init__(self, num_input, num_hidden, num_action_space, init_w=3e-3):
+    def __init__(self, num_input, num_hidden, num_action_space):
         super(Critic, self).__init__()
 
         self.s0 = None

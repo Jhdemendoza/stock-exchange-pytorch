@@ -2,10 +2,10 @@
 
 <img width="180px" height="26px" href="https://github.com/pytorch/pytorch" src="https://pp.userapi.com/c847120/v847120960/82b4/xGBK9pXAkw8.jpg">
 
-`stock-exchange-pytorch` implements some `deep learning` algorithms
+`stock-exchange-pytorch` applies some deep learning algorithms
 to financial market data in `pytorch`.
 Namely, `reinforcement learning` and  `supervised learning`
-are exploited, for a single stock or a portfolio.
+are applied to a single stock or to a portfolio.
 
 Reinforcement Learning
 - [x] Deep Q Learning (DQN) [[1]](http://arxiv.org/abs/1312.5602), [[2]](https://www.nature.com/articles/nature14236)
@@ -37,7 +37,7 @@ python3 train_reinforce_ddpg.py
 You can run the following to train a demo `dueling DQN` with the 
 provided data.
 ```buildoutcfg
-python3 train_reinforce.py
+python3 train_reinforce_dqn.py
 ```
 
 If you want to test the result, simply run
