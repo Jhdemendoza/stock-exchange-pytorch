@@ -8,7 +8,6 @@ from reinforcement.models_dqn import DuelingDQN
 import torch
 
 
-
 parser = argparse.ArgumentParser(description='Hyper-parameters for the DQN training')
 parser.add_argument('--epsilon',              default=0.0, type=float)
 parser.add_argument('--min_epsilon',          default=0.0, type=float)

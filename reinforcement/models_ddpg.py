@@ -137,9 +137,7 @@ class DDPG(nn.Module):
         next_action = self.actor_target(next_state).detach()
         target_value = self.critic_target(next_state, next_action).detach()
 
-        #                                                   cuda???
-        expected_value = (reward + (1.0 - done) \
-                          * target_value * self.args.gamma).cuda()
+        expected_value = reward + (1.0 - done) * target_value * self.args.gamma
 
         pred_value = self.critic(state, action)
 

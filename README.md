@@ -1,6 +1,6 @@
 # Stock-Exchange-Pytorch
 `stock-exchange-pytorch` implements some `deep learning` algorithms
-to financial markets data with `pytorch`.
+to financial markets data in `pytorch`.
 Namely, `reinforcement learning` and  `supervised learning`
 are exploited.
 
@@ -8,13 +8,12 @@ Reinforcement Learning
 - [x] Deep Q Learning (DQN) [[1]](http://arxiv.org/abs/1312.5602), [[2]](https://www.nature.com/articles/nature14236)
 - [x] Double DQN [[3]](http://arxiv.org/abs/1509.06461)
 - [x] Dueling network DQN (Dueling DQN) [[4]](https://arxiv.org/abs/1511.06581)
-- [ ] Deep Deterministic Policy Gradient (DDPG) [[5]](http://arxiv.org/abs/1509.02971)
-- [ ] Asynchronous Advantage Actor-Critic (A3C) or its variant (A2C) [[6]](http://arxiv.org/abs/1602.01783)
-- [ ] Proximal Policy Optimization Algorithms (PPO) [[7]](https://arxiv.org/abs/1707.06347)
+- [x] Deep Deterministic Policy Gradient (DDPG) [[5]](http://arxiv.org/abs/1509.02971)
+- [ ] Proximal Policy Optimization Algorithms (PPO) [[6]](https://arxiv.org/abs/1707.06347)
 
 Supervised Learning
 - [x] Gated Recurrent Unit (GRU) approach to fit distribution of returns in 
- a probabilistic sense [[8]](https://arxiv.org/abs/1406.1078)
+ a probabilistic sense [[7]](https://arxiv.org/abs/1406.1078)
 - [ ] Use `uber/pyro` or `pymc` to test other approaches of probabilistic programming
 
 Data
@@ -25,6 +24,12 @@ The actual data is in `iexfinance` folder of this repository.
 By default, it assumes you have installed `pytorch` as the name suggests. 
 It also assumes you have a decent `NVIDIA GPU` with `Python 3.5+`, and `pip install gym`
 if necessary.
+
+You can run the following to train a demo `ddpg` with the 
+provided data.
+```buildoutcfg
+python3 train_reinforce_ddpg.py
+```
 
 You can run the following to train a demo `dueling DQN` with the 
 provided data.
@@ -45,14 +50,14 @@ If all went well, you might see something like this:
 
 ### gym_stock_exchange [link](https://github.com/wbaik/gym-stock-exchange)
 This is an `environment` which depends on `open-ai`'s [gym](https://github.com/openai/gym).
-While it supports multiple holdings of securities, on differing amounts between `-1 and 1` which is 
-discretelely divisible by `any number`, it does not provide constraints options or some of the 
-rules of the game.
+It comes in two flavors. One is `discrete` action space, and another `continuous`.
+Obviously, `DDPG` uses `continuous`, and `DQN`s uses discrete settings.
+You can check out the design for [discrete](url_disc) and [continuous](url_cont) cases.
 
 
 ### Future work
 - [x] Provide constraints in holdings for `gym_stock_exchange`
 - [x] Provide `portfolio` by default in the `gym_stock_exchange`
-- [ ] Provide `policy gradient` approaches for the `agents` 
-- [ ] Provide `options` and `other derivatives` valuations through agents learning the payoff from those products
-
+- [ ] Implement `PPO` or other `policy gradient` methods
+- [ ] Provide `options` and `other derivatives` valuations
+- [ ] Provide more thorough support for `supervised learnings`
