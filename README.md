@@ -1,6 +1,6 @@
 # Stock-Exchange-Pytorch
 
-![](./img/pytorch.png)
+![](./img/pytorch.png =100x20)
 
 `stock-exchange-pytorch` applies deep learning algorithms
 to financial market data in `pytorch`.
