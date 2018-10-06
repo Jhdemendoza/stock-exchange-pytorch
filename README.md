@@ -1,11 +1,11 @@
 # Stock-Exchange-Pytorch
 
-<img width="180px" height="26px" href="https://github.com/pytorch/pytorch" src="https://pp.userapi.com/c847120/v847120960/82b4/xGBK9pXAkw8.jpg">
+![](./img/pytorch.png)
 
-`stock-exchange-pytorch` applies some deep learning algorithms
+`stock-exchange-pytorch` applies deep learning algorithms
 to financial market data in `pytorch`.
 Namely, `reinforcement learning` and  `supervised learning`
-are applied to a single stock or to a portfolio.
+are applied to a portfolio.
 
 Reinforcement Learning
 - [x] Deep Q Learning (DQN) [[1]](http://arxiv.org/abs/1312.5602), [[2]](https://www.nature.com/articles/nature14236)
@@ -24,7 +24,7 @@ Data
 The actual data is in `iexfinance` folder of this repository.
 
 ### Requirements
-By default, it assumes you have installed `pytorch` as the name suggests. 
+By default, it assumes you have installed `PyTorch-0.4+` as the name suggests. 
 It also assumes you have a decent `NVIDIA GPU` with `Python 3.5+`, and `pip install gym`
 if necessary.
 
@@ -55,7 +55,7 @@ If all went well, you might see something like this:
 This is an `environment` which depends on `open-ai`'s [gym](https://github.com/openai/gym).
 It supports single stock or a portfolio. For `action spaces` , both `continuous` and
 `discrete` are supported.
-Obviously, `DDPG` uses `continuous`, and `DQN`s uses discrete settings.
+Obviously, `DDPG` uses continuous action-space, and `DQN` uses discrete settings.
 Code for [continuous](gym_exchange/envs/stock_exchange_continuous.py) and
 [discrete](gym_exchange/envs/stock_exchange.py) are found here.
 
@@ -63,6 +63,7 @@ Code for [continuous](gym_exchange/envs/stock_exchange_continuous.py) and
 ### Future work
 - [x] Provide constraints in holdings for `gym_stock_exchange`
 - [x] Provide `portfolio` by default in the `gym_stock_exchange`
-- [ ] Implement `PPO` and other `policy gradient` methods
-- [ ] Provide `options` and `other derivatives` valuations
+- [ ] Provide examples
 - [ ] Provide more thorough support for `supervised learnings`
+- [ ] Implement `PPO` and other `policy gradient` methods
+- [ ] Implement `options` and `other derivatives` valuations
