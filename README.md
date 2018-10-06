@@ -1,7 +1,6 @@
 # Stock-Exchange-Pytorch
 
-<div style="width:50%">![](./img/pytorch.png)</div>
-
+<img src="https://discuss.pytorch.org/uploads/default/original/2X/3/35226d9fbc661ced1c5d17e374638389178c3176.png" width="200" />
 `stock-exchange-pytorch` applies deep learning algorithms
 to financial market data in `pytorch`.
 Namely, `reinforcement learning` and  `supervised learning`
