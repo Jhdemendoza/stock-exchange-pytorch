@@ -5,31 +5,34 @@ import torch
 import torch.nn as nn
 
 from torch import optim
-from supervised import train_model_continuous, ContinuousModel
+from supervised import train_model_continuous, ContinuousModelBasicConvolution
 from supervised.train import get_dl
 from supervised.dataset import PortfolioData
 
 
 parser = argparse.ArgumentParser(description='Hyper-parameters for the DQN training')
-parser.add_argument('--n_train',              default=5000, type=int)
+parser.add_argument('--n_train',              default=2, type=int)
 parser.add_argument('--batch_size',           default=32, type=int)
-parser.add_argument('--learning_rate',        default=1e-7, type=float)
+parser.add_argument('--learning_rate',        default=1e-5, type=float)
 parser.add_argument('--mode',                 default='train', type=str, choices=['train', 'test'])
 parser.add_argument('--num_running_days',     default=40, type=int)
-parser.add_argument('--num_discrete_returns', default=10, type=int)
+parser.add_argument('--dim_linear_output',    default=10, type=int)
+parser.add_argument('--dim_num_layers',       default=4, type=int)
+parser.add_argument('--dim_conv_hidden_size', default=128, type=int)
 
 args = parser.parse_args()
 
 args.tickers = ['aapl', 'googl', 'pg']
 args.input_dim = len(args.tickers)
+args.conv_kernel_size = 4
 
 if __name__ == '__main__':
 
-    gru_model = ContinuousModel(args.input_dim,
-                                rnn_hidden_size=20,
-                                output_size=args.dim_linear_output,
-                                num_layers=4,
-                                final_output=args.input_dim).cuda()
+    gru_model = ContinuousModelBasicConvolution(input_shape=(1, args.num_running_days, args.input_dim),
+                                                conv_hidden_size=args.dim_conv_hidden_size,
+                                                conv_kernel_size=args.conv_kernel_size,
+                                                linear_output_size=args.dim_linear_output,
+                                                final_output_size=args.input_dim).cuda()
     try:
         gru_model.load_state_dict(torch.load('gru_model.pt'))
     except FileNotFoundError:

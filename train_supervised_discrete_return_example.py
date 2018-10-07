@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 
 from torch import optim
-from supervised import train_model_discrete, DiscreteModel
+from supervised import train_model_discrete, DiscreteModelBasicGru
 from supervised.environment import *
 from supervised.train import get_dl
 from supervised.dataset import PortfolioData, TickerDataDiscreteReturn
@@ -26,9 +26,9 @@ args.input_dim = len(args.tickers)
 
 if __name__ == '__main__':
 
-    gru_model = DiscreteModel(args.input_dim, GRU_OUTPUT_SIZE,
-                              output_size=args.num_discrete_returns,
-                              num_layers=2).double().cuda()
+    gru_model = DiscreteModelBasicGru(args.input_dim, GRU_OUTPUT_SIZE,
+                                      output_size=args.num_discrete_returns,
+                                      num_layers=2).double().cuda()
     try:
         gru_model.load_state_dict(torch.load('gru_model.pt'))
     except FileNotFoundError:

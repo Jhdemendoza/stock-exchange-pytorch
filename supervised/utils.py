@@ -1,6 +1,6 @@
 import collections
 import six
-import scipy
+import scipy.stats as stats
 
 
 def iterable(arg):

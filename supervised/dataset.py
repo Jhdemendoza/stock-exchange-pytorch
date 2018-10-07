@@ -65,7 +65,7 @@ class TickerDataDiscreteReturn(TickerData):
 
 # hmm looks like it doesn't need to inherit...
 class PortfolioData(TickerData):
-    def __init__(self, tickers, num_state_space, shuffled_index):
+    def __init__(self, tickers, num_state_space, shuffled_index, transform=None):
         '''
         :param tickers: an iterable of strings
         :param num_state_space: number of days used as an input `x`
@@ -76,6 +76,7 @@ class PortfolioData(TickerData):
         self.num_state_space = num_state_space
         self.index = shuffled_index
         self.xs, self.ys = self.load_tickers()
+        self.transform = transform
 
     def load_tickers(self):
         # xs will be of dimension 3
@@ -99,6 +100,12 @@ class PortfolioData(TickerData):
 
     def __getitem__(self, index):
         index = self.index[index]
-        x = torch.FloatTensor(self.xs[index])
-        y = torch.FloatTensor(self.ys[index])
+        x = self.xs[index]
+        y = self.ys[index]
+
+        if self.transform:
+            x, y = self.transform(x, y)
+
+        x = torch.FloatTensor(x)
+        y = torch.FloatTensor(y)
         return x, y

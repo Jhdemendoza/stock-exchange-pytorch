@@ -11,14 +11,16 @@ from supervised.dataset import TickerDataDiscreteReturn, PortfolioData
 from supervised.utils import iterable, print_distribution
 
 
-def train_validate_split(length, split_pct=PCT_TRAIN):
+def train_validate_split(length, split_pct=PCT_TRAIN, shuffle=True):
     '''
     :param length: length of the total dataset
     :param split_pct: percentage to use for training
     :return np.array of indices for train, test
     '''
     total = np.arange(length)
-    np.random.shuffle(total)  # inplace
+
+    if shuffle:
+        np.random.shuffle(total)  # inplace
 
     cutoff = int(length * split_pct)
     train, validate = total[:cutoff], total[cutoff:]
@@ -27,33 +29,22 @@ def train_validate_split(length, split_pct=PCT_TRAIN):
 
 
 # Eventually, PortfolioData should be the only class for DataClass
-def get_dl(tickers, num_state_space, batch_size, DataClass):
+# Okay, started deprecating Discrete... Discrete is really worthless...
+def get_dl(tickers, num_state_space, batch_size, DataClass, shuffle=True):
 
-    assert isinstance(tickers, str) or iterable(tickers)
-
-    # It's because of one `s` in `tickers`
-    # This is super stupid...
-    if DataClass == PortfolioData:
-        # Use the first ticker in the list
-        ticker = str.upper(tickers[0])
-        ticker_dataset = partial(DataClass,
-                                 tickers=tickers,
-                                 num_state_space=num_state_space)
-    else:
-        if iterable(tickers):
-            # If it's in a list, must be only one ticker
-            assert len(tickers) == 1
-            tickers = tickers[0]
-
+    if isinstance(tickers, str):
         ticker = str.upper(tickers)
-        ticker_dataset = partial(DataClass,
-                                 ticker=tickers,
-                                 num_state_space=num_state_space)
+    else:
+        ticker = str.upper(tickers[0])
+
+    ticker_dataset = partial(DataClass,
+                             tickers=tickers,
+                             num_state_space=num_state_space)
 
     ticker_file = f'iexfinance/iexdata/{ticker}'
     ticker_df = pd.read_csv(ticker_file)
     train_data_length = len(ticker_df) - num_state_space
-    train, validate = train_validate_split(train_data_length)
+    train, validate = train_validate_split(train_data_length, shuffle=shuffle)
 
     train_dataloader = DataLoader(ticker_dataset(shuffled_index=train),
                                   num_workers=1, batch_size=batch_size)
@@ -63,11 +54,8 @@ def get_dl(tickers, num_state_space, batch_size, DataClass):
     return train_dataloader, val_dataloader
 
 
-'''
-NEED TO REFACTOR TRAIN FUNCTIONS
-NOT SURE WHEN THOUGH...
-'''
 # models can be multiples, so are criterions, optimizers, schedulers...
+# Deprecate all these discrete...
 def train_model_discrete(models, criterions, optimizers, schedulers, num_epochs=5,
                          data_loader=None):
 
@@ -204,7 +192,7 @@ def train_model_continuous(models,
 
                 outs = [model(x) for model in models]
 
-                losses = [loss_fn(out, y.squeeze()) for loss_fn, out in zip(loss_functions, outs)]
+                losses = [loss_fn(out, y.reshape_as(out)) for loss_fn, out in zip(loss_functions, outs)]
 
                 if phase == 'train':
                     for loss, optimizer in zip(losses, optimizers):
@@ -212,16 +200,13 @@ def train_model_continuous(models,
                         optimizer.step()
 
                 for loss, running_loss, out in zip(losses, running_losses, outs):
-                    print_distribution(out)
+                    # print_distribution(out)
                     running_loss += loss.item() * x.size(0)
                     print('\rAverage loss: {:.4f} '.format(running_loss.item()
-                                                           / (x.size(0) * (cur_idx + 1))
-                                                           ), end='')
-            # Could be ...
-            # epoch_losses = [running_loss / len(dl) for running_loss in running_losses]
-            epoch_losses = []
-            for running_loss in running_losses:
-                epoch_losses.append(running_loss / len(dl))
+                                                           / (x.size(0) * (cur_idx + 1))), end='')
+
+            assert len(dl) != 0, '{}, {}'.format(dl, phase)
+            epoch_losses = [running_loss / len(dl) for running_loss in running_losses]
 
             for n_iter, epoch_loss in enumerate(epoch_losses):
                 print('\n{}th Model: {} loss: {:.4f}'.format(n_iter, phase,
