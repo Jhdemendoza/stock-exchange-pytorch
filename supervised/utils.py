@@ -15,3 +15,6 @@ def print_distribution(output):
     out = out.reshape(-1, out.shape[-1])
     print('\r{} '.format(stats.describe(out)), end='')
 
+
+def sin_lr(x):
+    return np.abs(np.sin((x + 0.01) * 0.2))

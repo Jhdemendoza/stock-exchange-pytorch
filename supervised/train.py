@@ -202,14 +202,14 @@ def train_model_continuous(models,
                 for loss, running_loss, out in zip(losses, running_losses, outs):
                     # print_distribution(out)
                     running_loss += loss.item() * x.size(0)
-                    print('\rAverage loss: {:.4f} '.format(running_loss.item()
+                    print('\rAverage loss: {:.6f} '.format(running_loss.item()
                                                            / (x.size(0) * (cur_idx + 1))), end='')
 
             assert len(dl) != 0, '{}, {}'.format(dl, phase)
             epoch_losses = [running_loss / len(dl) for running_loss in running_losses]
 
             for n_iter, epoch_loss in enumerate(epoch_losses):
-                print('\n{}th Model: {} loss: {:.4f}'.format(n_iter, phase,
+                print('\n{}th Model: {} loss: {:.6f}'.format(n_iter, phase,
                                                              epoch_loss.cpu().item()))
 
     time_elapsed = time.time() - since

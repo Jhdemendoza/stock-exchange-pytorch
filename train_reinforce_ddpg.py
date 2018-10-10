@@ -52,5 +52,5 @@ if __name__ == '__main__':
         # This is now unnecessary...
         if args.mode == 'train':
             print('Saving...')
-            # torch.save(policy_q.state_dict(), 'my_duel_policy_vanilla.pt')
-            # torch.save(target_q.state_dict(), 'my_duel_target_vanilla.pt')
+            # Implement saving option in DDPG?
+

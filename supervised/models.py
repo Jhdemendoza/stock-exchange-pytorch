@@ -6,7 +6,10 @@ class DiscreteModelBasicGru(torch.nn.Module):
     def __init__(self, input_size, rnn_hidden_size,
                  output_size, num_layers):
         super(DiscreteModelBasicGru, self).__init__()
-        self.rnn = torch.nn.GRU(input_size, rnn_hidden_size,
+        self.rnn1 = torch.nn.GRU(input_size, rnn_hidden_size,
+                                num_layers=num_layers,
+                                batch_first=True)
+        self.rnn2 = torch.nn.GRU(rnn_hidden_size, rnn_hidden_size,
                                 num_layers=num_layers,
                                 batch_first=True)
         self.linear = nn.Linear(rnn_hidden_size, output_size)
@@ -28,7 +31,7 @@ class ContinuousModelBasicGru(torch.nn.Module):
         :param num_layers: GRU layers dimension
         :param final_output: number of tickers (same as input_size unless transformed)
         '''
-        super(ContinuousModelBasicConvolution, self).__init__()
+        super(ContinuousModelBasicGru, self).__init__()
         self.rnn = torch.nn.GRU(input_size,
                                 rnn_hidden_size,
                                 num_layers=num_layers,
@@ -56,6 +59,13 @@ class ContinuousModelBasicConvolution(torch.nn.Module):
                  conv_kernel_size,
                  linear_output_size,
                  final_output_size):
+        '''
+        :param input_shape: (1, num_running_days, num_tickers)
+        :param conv_hidden_size: hidden dimension
+        :param conv_kernel_size: kernel dimension for 2d Convolution
+        :param linear_output_size: linear output dimension
+        :param final_output_size: num_tickers
+        '''
         super(ContinuousModelBasicConvolution, self).__init__()
         self.c1 = nn.Conv2d(1, conv_hidden_size, (conv_kernel_size, input_shape[-1]))
         self.b1 = nn.BatchNorm2d(conv_hidden_size)
