@@ -10,6 +10,8 @@ TransitionDone = namedtuple('TransitionDone',
                             ('state', 'action', 'reward', 'next_state', 'done'))
 
 
+# ReplayBuffer is faster
+# We should deprecate this...
 class ReplayMemory:
     def __init__(self, max_length):
         self.max_length = max_length

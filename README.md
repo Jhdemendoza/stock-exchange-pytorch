@@ -14,8 +14,7 @@ Reinforcement Learning
 - [ ] Proximal Policy Optimization Algorithms (PPO) [[6]](https://arxiv.org/abs/1707.06347)
 
 Supervised Learning
-- [x] Gated Recurrent Unit (GRU) approach to fit distribution of returns in 
- a probabilistic sense [[7]](https://arxiv.org/abs/1406.1078)
+- [x] Gated Recurrent Unit (GRU) approach to fit distributions [[7]](https://arxiv.org/abs/1406.1078)
 - [ ] Use `uber/pyro` or `pymc` to test other approaches of probabilistic programming
 
 Data
