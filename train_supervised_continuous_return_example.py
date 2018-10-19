@@ -18,17 +18,17 @@ parser.add_argument('--mode',                 default='train', type=str, choices
 parser.add_argument('--num_running_days',     default=40, type=int)
 parser.add_argument('--dim_linear_output',    default=10, type=int)
 parser.add_argument('--dim_layers',           default=4, type=int)
-parser.add_argument('--dim_conv_hidden_size', default=128, type=int)
+parser.add_argument('--dim_conv_hidden_size', default=32, type=int)
 
 args = parser.parse_args()
 
-args.tickers = ['sine']
+args.tickers = ['aapl', 'amd', 'msft', 'intc', 'd', 'sbux', 'atvi', 'ibm', 'ual', 'vrsn', 't', 'mcd', 'vz']
 args.input_dim = len(args.tickers)
 args.conv_kernel_size = 4
 
 if __name__ == '__main__':
 
-    convolution_model = ContinuousModelBasicConvolution(input_shape=(1, args.num_running_days, args.input_dim),
+    convolution_model = ContinuousModelBasicConvolution(input_shape=(args.input_dim, args.num_running_days),
                                                         conv_hidden_size=args.dim_conv_hidden_size,
                                                         conv_kernel_size=args.conv_kernel_size,
                                                         linear_output_size=args.dim_linear_output,
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     optimizer_fn = optim.SGD(convolution_model.parameters(),
                              lr=args.learning_rate,
                              momentum=0.9,
-                             weight_decay=1e-5)
+                             weight_decay=1e-6)
 
     exp_lr_scheduler = optim.lr_scheduler.LambdaLR(optimizer_fn, lr_lambda=[sin_lr])
 

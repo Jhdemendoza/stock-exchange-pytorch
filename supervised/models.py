@@ -60,23 +60,20 @@ class ContinuousModelBasicConvolution(torch.nn.Module):
                  linear_output_size,
                  final_output_size):
         '''
-        :param input_shape: (1, num_running_days, num_tickers)
+        :param input_shape: tuple of (num_tickers, num_running_days)
         :param conv_hidden_size: hidden dimension
-        :param conv_kernel_size: kernel dimension for 2d Convolution
+        :param conv_kernel_size: kernel dimension for 1d convolution
         :param linear_output_size: linear output dimension
         :param final_output_size: num_tickers
         '''
+        assert isinstance(input_shape, tuple)
         super(ContinuousModelBasicConvolution, self).__init__()
-        self.c1 = nn.Conv2d(1, conv_hidden_size, (conv_kernel_size, input_shape[-1]))
-        self.b1 = nn.BatchNorm2d(conv_hidden_size)
-        self.c2 = nn.Conv2d(conv_hidden_size, conv_hidden_size, (conv_kernel_size, 1))
-        self.b2 = nn.BatchNorm2d(conv_hidden_size)
-        self.c3 = nn.Conv2d(conv_hidden_size, conv_hidden_size, (conv_kernel_size, 1))
-        self.b3 = nn.BatchNorm2d(conv_hidden_size)
-        self.c4 = nn.Conv2d(conv_hidden_size, conv_hidden_size, (conv_kernel_size, 1))
-        self.b4 = nn.BatchNorm2d(conv_hidden_size)
-        self.c5 = nn.Conv2d(conv_hidden_size, conv_hidden_size, (conv_kernel_size, 1))
-        self.b5 = nn.BatchNorm2d(conv_hidden_size)
+        self.c1 = nn.Conv1d(input_shape[0], conv_hidden_size, conv_kernel_size)
+        self.b1 = nn.BatchNorm1d(conv_hidden_size)
+        self.c2 = nn.Conv1d(conv_hidden_size, conv_hidden_size, conv_kernel_size)
+        self.b2 = nn.BatchNorm1d(conv_hidden_size)
+        self.c3 = nn.Conv1d(conv_hidden_size, conv_hidden_size, conv_kernel_size)
+        self.b3 = nn.BatchNorm1d(conv_hidden_size)
 
         self.flatten = Flatten()
 
@@ -84,14 +81,11 @@ class ContinuousModelBasicConvolution(torch.nn.Module):
 
         self.linear1 = nn.Linear(flatten_dim, linear_output_size)
         self.linear2 = nn.Linear(linear_output_size, final_output_size)
-        self.h_0 = None
 
     def _forward_features(self, x):
-        x = torch.tanh(self.b1(self.c1(x)))
-        x = torch.tanh(self.b2(self.c2(x)))
-        x = torch.tanh(self.b3(self.c3(x)))
-        x = torch.tanh(self.b4(self.c4(x)))
-        x = torch.tanh(self.b5(self.c5(x)))
+        x = torch.relu(self.b1(self.c1(x)))
+        x = torch.relu(self.b2(self.c2(x)))
+        x = torch.relu(self.b3(self.c3(x)))
         return x
 
     def _get_conv_output(self, shape):
@@ -102,9 +96,9 @@ class ContinuousModelBasicConvolution(torch.nn.Module):
         return n_size
 
     def forward(self, x):
-        x.unsqueeze_(1)
-        x = self._forward_features(x)
+        # x is being permuted...
+        x = self._forward_features(x.permute(0, 2, 1))
         x = self.flatten(x)
-        x = torch.tanh(self.linear1(x))
+        x = torch.relu(self.linear1(x))
         return torch.tanh(self.linear2(x))
 
