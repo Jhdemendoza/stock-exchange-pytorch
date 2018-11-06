@@ -1,6 +1,5 @@
 import argparse
 import functools
-import numpy as np
 import torch
 import torch.nn as nn
 
@@ -13,18 +12,18 @@ from supervised.dataset import PortfolioData
 parser = argparse.ArgumentParser(description='Hyper-parameters for the DQN training')
 parser.add_argument('--n_train',              default=2, type=int)
 parser.add_argument('--batch_size',           default=32, type=int)
-parser.add_argument('--learning_rate',        default=1e-5, type=float)
+parser.add_argument('--learning_rate',        default=1e-4, type=float)
 parser.add_argument('--mode',                 default='train', type=str, choices=['train', 'test'])
 parser.add_argument('--num_running_days',     default=40, type=int)
-parser.add_argument('--dim_linear_output',    default=10, type=int)
-parser.add_argument('--dim_layers',           default=4, type=int)
 parser.add_argument('--dim_conv_hidden_size', default=32, type=int)
 
 args = parser.parse_args()
 
 args.tickers = ['aapl', 'amd', 'msft', 'intc', 'd', 'sbux', 'atvi', 'ibm', 'ual', 'vrsn', 't', 'mcd', 'vz']
-args.input_dim = len(args.tickers)
-args.conv_kernel_size = 4
+num_tickers = len(args.tickers)
+args.input_dim = num_tickers
+args.conv_kernel_size = 10
+args.dim_linear_output = num_tickers * 4
 
 if __name__ == '__main__':
 

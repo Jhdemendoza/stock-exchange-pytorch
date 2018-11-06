@@ -192,7 +192,7 @@ def train_model_continuous(models,
 
                 outs = [model(x) for model in models]
 
-                losses = [loss_fn(out, y.reshape_as(out)) for loss_fn, out in zip(loss_functions, outs)]
+                losses = [loss_fn(out, y.reshape_as(out[1])) for loss_fn, out in zip(loss_functions, outs)]
 
                 if phase == 'train':
                     for loss, optimizer in zip(losses, optimizers):

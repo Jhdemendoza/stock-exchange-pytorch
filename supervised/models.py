@@ -1,24 +1,7 @@
 import torch
 import torch.nn as nn
 
-
-class DiscreteModelBasicGru(torch.nn.Module):
-    def __init__(self, input_size, rnn_hidden_size,
-                 output_size, num_layers):
-        super(DiscreteModelBasicGru, self).__init__()
-        self.rnn1 = torch.nn.GRU(input_size, rnn_hidden_size,
-                                num_layers=num_layers,
-                                batch_first=True)
-        self.rnn2 = torch.nn.GRU(rnn_hidden_size, rnn_hidden_size,
-                                num_layers=num_layers,
-                                batch_first=True)
-        self.linear = nn.Linear(rnn_hidden_size, output_size)
-        self.h_0 = None
-
-    def forward(self, x):
-        out, self.h_0 = self.rnn(x)
-        x = out[:, -1:, :].squeeze()
-        return self.linear(x)
+from functools import reduce
 
 
 class ContinuousModelBasicGru(torch.nn.Module):
@@ -68,12 +51,12 @@ class ContinuousModelBasicConvolution(torch.nn.Module):
         '''
         assert isinstance(input_shape, tuple)
         super(ContinuousModelBasicConvolution, self).__init__()
-        self.c1 = nn.Conv1d(input_shape[0], conv_hidden_size, conv_kernel_size)
+        self.c1 = nn.Conv1d(input_shape[0], conv_hidden_size, conv_kernel_size, stride=2)
         self.b1 = nn.BatchNorm1d(conv_hidden_size)
-        self.c2 = nn.Conv1d(conv_hidden_size, conv_hidden_size, conv_kernel_size)
+        self.c2 = nn.Conv1d(conv_hidden_size, conv_hidden_size, conv_kernel_size, stride=1)
         self.b2 = nn.BatchNorm1d(conv_hidden_size)
-        self.c3 = nn.Conv1d(conv_hidden_size, conv_hidden_size, conv_kernel_size)
-        self.b3 = nn.BatchNorm1d(conv_hidden_size)
+        # self.c3 = nn.Conv1d(conv_hidden_size, conv_hidden_size, conv_kernel_size//2, stride=1)
+        # self.b3 = nn.BatchNorm1d(conv_hidden_size)
 
         self.flatten = Flatten()
 
@@ -84,8 +67,11 @@ class ContinuousModelBasicConvolution(torch.nn.Module):
 
     def _forward_features(self, x):
         x = torch.relu(self.b1(self.c1(x)))
+        # x = torch.relu(self.c1(x))
         x = torch.relu(self.b2(self.c2(x)))
-        x = torch.relu(self.b3(self.c3(x)))
+        # x = torch.relu(self.c2(x))
+        # x = torch.relu(self.b3(self.c3(x)))
+        # x = torch.relu(self.c3(x))
         return x
 
     def _get_conv_output(self, shape):
@@ -101,4 +87,47 @@ class ContinuousModelBasicConvolution(torch.nn.Module):
         x = self.flatten(x)
         x = torch.relu(self.linear1(x))
         return torch.tanh(self.linear2(x))
+
+
+class AutoEncoder(nn.Module):
+    def __init__(self, input_size, final_output_size):
+        assert isinstance(input_size, tuple)
+        self.input_size = input_size
+        linear_length = reduce(lambda x, y: x * y, input_size)
+
+        super(AutoEncoder, self).__init__()
+        self.flatten = Flatten()
+        self.encoder = nn.Sequential(
+            nn.Linear(linear_length, final_output_size * 8),
+            nn.ReLU(True),
+            nn.Linear(final_output_size * 8, final_output_size * 4),
+            nn.ReLU(True),
+            nn.Linear(final_output_size * 4, final_output_size * 2),
+            nn.ReLU(True),
+            nn.Linear(final_output_size * 2, final_output_size))
+
+        self.predictor = nn.Sequential(
+            nn.Linear(final_output_size, final_output_size * 8),
+            nn.ReLU(True),
+            nn.Linear(final_output_size * 8, final_output_size),
+            nn.Tanh()
+        )
+
+        self.decoder = nn.Sequential(
+            nn.Linear(final_output_size, final_output_size * 2),
+            nn.ReLU(True),
+            nn.Linear(final_output_size * 2, final_output_size * 4),
+            nn.ReLU(True),
+            nn.Linear(final_output_size * 4, final_output_size * 8),
+            nn.ReLU(True),
+            nn.Linear(final_output_size * 8, linear_length))
+
+    def forward(self, x):
+        f = self.flatten(x)
+        e = self.encoder(f)
+        p = self.predictor(e.detach())
+        d = self.decoder(e)
+        r = d.reshape(x.size(0), *self.input_size)
+
+        return r, p, x
 
