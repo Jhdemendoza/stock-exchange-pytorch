@@ -1,34 +1,6 @@
 import torch
 import torch.nn as nn
 
-from functools import reduce
-
-
-class ContinuousModelBasicGru(torch.nn.Module):
-    def __init__(self, input_size, rnn_hidden_size,
-                 linear_output_size, num_layers, final_output):
-        '''
-        :param input_size: number of tickers if not transformed
-        :param rnn_hidden_size: rnn hidden dimension
-        :param linear_output_size: linear output size
-        :param num_layers: GRU layers dimension
-        :param final_output: number of tickers (same as input_size unless transformed)
-        '''
-        super(ContinuousModelBasicGru, self).__init__()
-        self.rnn = torch.nn.GRU(input_size,
-                                rnn_hidden_size,
-                                num_layers=num_layers,
-                                batch_first=True)
-        self.linear1 = nn.Linear(rnn_hidden_size, linear_output_size)
-        self.linear2 = nn.Linear(linear_output_size, final_output)
-        self.h_0 = None
-
-    def forward(self, x):
-        out, self.h_0 = self.rnn(x)
-        x = out[:, -1:, :].squeeze()
-        x = torch.tanh(self.linear1(x))
-        return torch.tanh(self.linear2(x))
-
 
 class Flatten(nn.Module):
     def forward(self, input):
@@ -89,45 +61,47 @@ class ContinuousModelBasicConvolution(torch.nn.Module):
         return torch.tanh(self.linear2(x))
 
 
-class AutoEncoder(nn.Module):
-    def __init__(self, input_size, final_output_size):
-        assert isinstance(input_size, tuple)
-        self.input_size = input_size
-        linear_length = reduce(lambda x, y: x * y, input_size)
-
-        super(AutoEncoder, self).__init__()
-        self.flatten = Flatten()
-        self.encoder = nn.Sequential(
-            nn.Linear(linear_length, final_output_size * 8),
-            nn.ReLU(True),
-            nn.Linear(final_output_size * 8, final_output_size * 4),
-            nn.ReLU(True),
-            nn.Linear(final_output_size * 4, final_output_size * 2),
-            nn.ReLU(True),
-            nn.Linear(final_output_size * 2, final_output_size))
-
-        self.predictor = nn.Sequential(
-            nn.Linear(final_output_size, final_output_size * 8),
-            nn.ReLU(True),
-            nn.Linear(final_output_size * 8, final_output_size),
-            nn.Tanh()
-        )
-
-        self.decoder = nn.Sequential(
-            nn.Linear(final_output_size, final_output_size * 2),
-            nn.ReLU(True),
-            nn.Linear(final_output_size * 2, final_output_size * 4),
-            nn.ReLU(True),
-            nn.Linear(final_output_size * 4, final_output_size * 8),
-            nn.ReLU(True),
-            nn.Linear(final_output_size * 8, linear_length))
+class Encoder(nn.Module):
+    def __init__(self, input_shape, final_output_size):
+        super(Encoder, self).__init__()
+        self.c1 = nn.Conv1d(input_shape[0], final_output_size * 2, (4,), 4)
+        self.c2 = nn.Conv1d(final_output_size * 2, final_output_size * 1, (1,), 1)
+        self.c3 = nn.Conv1d(final_output_size * 1, 1, (1,), 1)
 
     def forward(self, x):
-        f = self.flatten(x)
-        e = self.encoder(f)
-        p = self.predictor(e.detach())
-        d = self.decoder(e)
-        r = d.reshape(x.size(0), *self.input_size)
+        x = self.c1(x)
+        x = torch.relu(x)
+        x = self.c2(x)
+        x = torch.relu(x)
+        x = self.c3(x)
+        return torch.tanh(x)
 
-        return r, p, x
 
+class Decoder(nn.Module):
+    def __init__(self, input_shape, final_output_size):
+        super(Decoder, self).__init__()
+        self.c1 = nn.ConvTranspose1d(1,
+                                     final_output_size * 1, (1,), stride=1)
+        self.c2 = nn.ConvTranspose1d(final_output_size * 1,
+                                     final_output_size * 2, (1,), 1)
+        self.c3 = nn.ConvTranspose1d(final_output_size * 2,
+                                     input_shape[0], (4,), 4)
+
+    def forward(self, x):
+        x = self.c1(x)
+        x = torch.relu(x)
+        x = self.c2(x)
+        x = torch.relu(x)
+        x = self.c3(x)
+        return x
+
+
+class AutoEncoder(nn.Module):
+    def __init__(self, input_shape, final_output_size):
+        super(AutoEncoder, self).__init__()
+        self.encoder = Encoder(input_shape, final_output_size)
+        self.decoder = Decoder(input_shape, final_output_size)
+
+    def forward(self, x):
+        x = self.encoder(x)
+        return self.decoder(x)

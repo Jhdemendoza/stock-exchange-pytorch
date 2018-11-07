@@ -17,7 +17,8 @@ def load_game_from_replay_memory(replay_memory, batch_size, done_flag=False):
 
 def batch_to_tensor(given_batch, action_batch=False):
     dtype = torch.long if action_batch else torch.float32
-    batch = list(map(lambda x: torch.tensor(x, device=device, dtype=dtype).unsqueeze(0), given_batch))
+    batch = list(map(lambda x: torch.tensor(x, device=device, dtype=dtype
+                                            ).unsqueeze(0), given_batch))
     return torch.cat(batch, 0)
 
 
@@ -58,7 +59,7 @@ def train_dqn(policy_q, target_q, replay_memory, batch_size,
 
 
 # Wonder if I should wrap this into a class...
-def train_ddpg(ddpg_agent, replay_buffer, batch_size, num_iteration=0):
+def train_ddpg(ddpg_agent, replay_buffer, batch_size):
     if len(replay_buffer) < batch_size * 10:
         return
 

@@ -109,3 +109,23 @@ class PortfolioData(TickerData):
         x = torch.FloatTensor(x)
         y = torch.FloatTensor(y)
         return x, y
+
+
+class TickerDataSimple(Dataset):
+    def __init__(self, ticker, x, y):
+        '''
+        :param ticker: string
+        :param x: np.array of x
+        :param y: np.array of y
+        '''
+        self.ticker = ticker
+        self.x = torch.FloatTensor(x)
+        self.y = torch.FloatTensor(y)
+
+    def __len__(self):
+        return len(self.y)
+
+    def __getitem__(self, index):
+        x = self.x[index]
+        y = self.y[index]
+        return x, y
