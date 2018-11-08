@@ -44,6 +44,7 @@ def give_delta_historical(df):
         if np.issubdtype(df[item].dtype, np.number):
             df[item] = np.log(df[item])
 
+    columns = df.columns
     df_values = df.values
     # for lookback
     for row_idx in range(5, df_values.shape[1], 4):
@@ -53,7 +54,7 @@ def give_delta_historical(df):
     for idx in range(len(df_values) - 1, 0, -1):
         df_values[idx, 1:5] -= df_values[idx - 1, 1:5]
 
-    return df_values
+    return pd.DataFrame(df_values, columns=columns)
 
 
 def process_output_data(spy_original):
@@ -78,14 +79,15 @@ def prepare_data(ticker, is_etf=False):
     ticker_df_x, ticker_df_y = read_csv(ticker, is_etf), read_csv(ticker, is_etf)
 
     ticker_df_x = give_delta_historical(ticker_df_x)
-    ticker_df_x = ticker_df_x[40:]
-    ticker_df_x[:, 1:] = ticker_df_x[:, 1:].astype(np.float64, copy=False)
+    ticker_df_x.drop(list(range(40)), axis=0, inplace=True)
+    ticker_df_x.iloc[:, 1:] = ticker_df_x.iloc[:, 1:].astype(np.float64, copy=False)
 
     ticker_df_y = process_output_data(ticker_df_y)
     y_column = ticker_df_y['10_Open'][40:]
 
     delete_from_back = y_column.isna().sum()
-    ticker_df_x = ticker_df_x[:-delete_from_back]
+    ticker_df_x.drop(list(range(len(ticker_df_x)-delete_from_back, len(ticker_df_x))),
+                     inplace=True)
     y_column = y_column[:-delete_from_back]
 
     return ticker_df_x, y_column
