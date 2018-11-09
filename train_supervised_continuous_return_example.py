@@ -9,7 +9,7 @@ from supervised.train import get_dl
 from supervised.dataset import PortfolioData
 
 
-parser = argparse.ArgumentParser(description='Hyper-parameters for the DQN training')
+parser = argparse.ArgumentParser(description='Hyper-parameters for the training')
 parser.add_argument('--n_train',              default=2, type=int)
 parser.add_argument('--batch_size',           default=32, type=int)
 parser.add_argument('--learning_rate',        default=1e-4, type=float)
