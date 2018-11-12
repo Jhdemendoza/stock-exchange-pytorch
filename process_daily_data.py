@@ -5,9 +5,21 @@ import time
 import os.path
 
 
-BASE_URL = 'https://api.iextrading.com/1.0/'
-STOCK = 'stock/'
+BASE_URL = 'https://api.iextrading.com/1.0'
+STOCK = '/stock'
 NEWS = '/news/last/10'
+my_list = {
+     'tsla', 'aapl', 'goog', 'sbux', 'tm', 'msft', 'gs', 'fb',
+     'bcs', 'atvi', 'baba', 'virt', 'nvda', 'amd',
+     'tot', 'bp', 'akam', 't', 'vz', 'ntdoy', 'shak',
+     'cmg', 'ddd', 'ssys', 'cost', 'cg', 'amzn', 'bidu',
+     'ntes', 'sina', 'snap', 'nvs', 'adbe', 'orcl', 'cldr',
+     'habt', 'aep', 'duk', 'd', 'peg', 'pcg',
+     'pg', 'wm', 'tsn', 'gm', 'mu', 'pfe', 'brk.b', 'bf.a', 'lgf.a',
+}
+
+russell_tickers = pd.read_csv('data/russell1000.csv').Ticker.tolist()
+russell_ticker_set = set(map(lambda x: str.lower(x), russell_tickers))
 
 
 def get_dataframe(address):
@@ -20,29 +32,56 @@ def get_dataframe(address):
     return df
 
 
+def save_df(ticker_df, ticker):
+    dates = ticker_df.date.unique()
+    # It's better to check the length, nan usually means complete junk
+    if len(dates) > 1:
+        print('{}: unique dates greater than two: {}'.format(ticker, dates))
+        return
+    today = dates.item()
+    ticker_df.to_csv('data/daily_data/{}'.format(today+'_'+ticker))
+
+    news_address = BASE_URL + STOCK + '/' + ticker + NEWS
+    news_df = get_dataframe(news_address)
+    news_df.to_csv('data/news_data/{}'.format(today+'_'+ticker+'_news'))
+
+
+def filling_in_for_missing_data():
+    '''
+    Use only when missing some days in the past month
+    '''
+    one_month = BASE_URL + STOCK + '/aapl/chart/1m'
+    d1 = get_dataframe(one_month)
+    dates = d1.date.tolist()
+    dates = [''.join(x.split('-')) for x in dates]
+
+    all_tickers = my_list | russell_ticker_set
+
+    for date in dates:
+        for ticker in all_tickers:
+            address = 'https://api.iextrading.com/1.0/stock/{}/chart/date/{}'.format(ticker, date)
+            ticker_df = get_dataframe(address)
+            if ticker_df is not None and 'minute' in ticker_df.columns and 'date' in ticker_df.columns:
+                dates = ticker_df.date.unique()
+                # It's better to check the length, nan usually means complete junk
+                if len(dates) > 1:
+                    print('{}: unique dates greater than two: {}'.format(ticker, dates))
+                    continue
+                today = dates.item()
+                ticker_df.to_csv('data/daily_data/{}'.format(today+'_'+ticker))
+
+
 if __name__ == '__main__':
 
-    ref_symbols = BASE_URL + 'ref-data/symbols'
-    symbols_df = get_dataframe(ref_symbols)
+    all_tickers = my_list | russell_ticker_set
 
-    for ticker in symbols_df.symbol:
+    for ticker in all_tickers:
 
-        ticker = str.lower(ticker)
         # price data
-        address = BASE_URL + STOCK + '{}/chart/1d'.format(ticker)
+        address = BASE_URL + STOCK + '/{}/chart/1d'.format(ticker)
         ticker_df = get_dataframe(address)
 
         if ticker_df is not None and 'minute' in ticker_df.columns and 'date' in ticker_df.columns:
-            dates = ticker_df.date.unique()
-            # It's better to check the length, nan usually means complete junk
-            if len(dates) > 1:
-                print('{}: unique dates greater than two: {}'.format(ticker, dates))
-                continue
-            today = dates.item()
-            ticker_df.to_csv('data/daily_data/{}'.format(today+'_'+ticker))
-
-            news_address = BASE_URL + STOCK + ticker + NEWS
-            news_df = get_dataframe(news_address)
-            news_df.to_csv('data/news_data/{}'.format(today+'_'+ticker+'_news'))
+            save_df(ticker_df, ticker)
 
         time.sleep(0.1)

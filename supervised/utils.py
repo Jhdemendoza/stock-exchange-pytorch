@@ -3,6 +3,7 @@ import six
 import scipy.stats as stats
 import numpy as np
 import pandas as pd
+import datetime
 
 
 def iterable(arg):
@@ -91,3 +92,71 @@ def prepare_data(ticker, is_etf=False):
     y_column = y_column[:-delete_from_back]
 
     return ticker_df_x, y_column
+
+
+def get_processed_minute_data(df):
+    cols = df.columns.tolist()
+    cols_to_drop = cols[:4] + ['label', 'changeOverTime', 'close', 'high',
+                               'low', 'marketAverage', 'marketClose',
+                               'marketOpen', 'volume', 'numberOfTrades',
+                               'notional', 'open', 'marketChangeOverTime']
+    df.drop(cols_to_drop, axis=1, inplace=True)
+    # necessary
+    df.reset_index(drop=True, inplace=True)
+
+    idx_to_drop = df.index[df.marketNotional == 0.0]
+    df.drop(idx_to_drop, inplace=True)
+    df.reset_index(drop=True, inplace=True)
+
+    df.date = df.date.map(lambda x: datetime.datetime.strptime(str(x), '%Y%m%d'))
+    df['weekday'] = df.date.map(lambda x: str(x.weekday()))
+    df['month'] = df.date.map(lambda x: str(x.month))
+
+    df.minute = first_df.minute.map(lambda x: datetime.datetime.strptime(x, '%H:%M'))
+    df['hour'] = first_df.minute.map(lambda x: str(x.hour))
+
+    return df
+
+
+def get_numeric_categoric(df):
+    numeric_cols, categorical_cols = [], []
+
+    for col in first_df:
+        if np.issubdtype(df[col].dtype, np.number):
+            numeric_cols += [col]
+        else:
+            categorical_cols += [col]
+
+    return numeric_cols, categorical_cols
+
+
+def delta_dataframe(df, numeric_columns):
+    '''
+    :param df:
+    :param numeric_columns:
+    :return: np.log(deltas)
+    '''
+    added_columns = []
+    for shift in [3, 5, 10, 20]:
+        for col in numeric_columns:
+            new_col_name = col + '_' + str(shift)
+            df[new_col_name] = df[col].shift(shift)
+            added_columns += [new_col_name]
+
+    df[numeric_columns + added_columns] = df[numeric_columns + added_columns].apply(np.log)
+
+    # for lookbacks
+    for new_col in added_columns:
+        original_col = new_col.split('_')[0]
+        df[new_col] = df[original_col] - df[new_col]
+
+    # for today
+    # This line is necessary
+    temp = df[numeric_columns] - df[numeric_columns].shift(1)
+    df[numeric_columns] = temp
+
+    assert (df.index == np.arange(len(first_df))).all()
+    df.drop(df.index[list(range(20))], axis=0, inplace=True)
+    df.reset_index(drop=True, inplace=True)
+
+    return df
