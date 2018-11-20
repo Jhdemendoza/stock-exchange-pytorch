@@ -25,6 +25,7 @@ args.input_dim = num_tickers
 args.conv_kernel_size = 10
 args.dim_linear_output = num_tickers * 4
 
+
 if __name__ == '__main__':
 
     convolution_model = ContinuousModelBasicConvolution(input_shape=(args.input_dim, args.num_running_days),

@@ -7,8 +7,7 @@ from collections import Counter
 from torch.utils.data import DataLoader
 
 from supervised.environment import *
-from supervised.dataset import TickerDataDiscreteReturn, PortfolioData
-from supervised.utils import iterable, print_distribution
+from supervised.utils import iterable
 
 
 def train_validate_split(length, split_pct=PCT_TRAIN, shuffle=True):
