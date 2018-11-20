@@ -142,7 +142,7 @@ def zero_one_transform(output):
     return (zero_one(output[0])).long(), output[1].long()
 
 
-def get_transfomer():
+def get_transfomed_combiner():
     # Use only the ones worked well in autoencoder
     transfomer = [
         ('Data after min-max scaling',
@@ -155,7 +155,10 @@ def get_transfomer():
          Normalizer()),
     ]
 
-    return transfomer
+    combined = FeatureUnion(transfomer)
+    _ = combined.fit(train_df)
+
+    return combined
 
 
 def get_input_target(ticker):
@@ -178,10 +181,7 @@ def get_input_target(ticker):
     binary_y_train = (y_train > args.threshold).astype(np.int)
     binary_y_test = (y_test > args.threshold).astype(np.int)
 
-    transfomer = get_transfomer()
-
-    combined = FeatureUnion(transfomer)
-    _ = combined.fit(train_df)
+    combined = get_transfomed_combiner()
 
     x_train_transformed = combined.transform(train_df)
     x_test_transformed = combined.transform(test_df)
@@ -247,7 +247,6 @@ bce_logger.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 file_handler = logging.FileHandler(FILE_NAME)
 file_handler.setFormatter(formatter)
-
 
 parser = argparse.ArgumentParser(description='Hyper-parameters for the training')
 parser.add_argument('--max_epoch',       default=30, type=int)
