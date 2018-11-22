@@ -134,6 +134,25 @@ class ConfusionMatrix(EpochMetric):
             output_transform=output_transform)
 
 
+class PositiveStatistics(EpochMetric):
+    def __init__(self, non_binary_y, output_transform=lambda x: x, threshold=0.5):
+        super(PositiveStatistics, self).__init__(
+            self.compute_stats, output_transform=output_transform)
+        self.non_binary_y = non_binary_y
+        self.threshold = threshold
+
+    def compute_stats(self, pred, target):
+        mask = pred.ge(self.threshold)
+        relevant_pred = torch.masked_select(pred, mask)
+        if (pred.shape != y_train.shape and pred.shape != y_test.shape) or relevant_pred.nelement() == 0:
+            return 0.0, -1.0
+
+        y_value = torch.masked_select(self.non_binary_y, mask)
+        distribution = relevant_pred * y_value
+
+        return distribution.mean(), distribution.std()
+
+
 def zero_one(y_preds):
     return y_preds > 0.5
 
@@ -142,7 +161,7 @@ def zero_one_transform(output):
     return (zero_one(output[0])).long(), output[1].long()
 
 
-def get_transfomed_combiner():
+def get_transfomed_combiner(train_df):
     # Use only the ones worked well in autoencoder
     transfomer = [
         ('Data after min-max scaling',
@@ -181,7 +200,7 @@ def get_input_target(ticker):
     binary_y_train = (y_train > args.threshold).astype(np.int)
     binary_y_test = (y_test > args.threshold).astype(np.int)
 
-    combined = get_transfomed_combiner()
+    combined = get_transfomed_combiner(train_df)
 
     x_train_transformed = combined.transform(train_df)
     x_test_transformed = combined.transform(test_df)
@@ -301,4 +320,4 @@ if __name__ == '__main__':
         trainer.run(train_dl, max_epochs=args.max_epoch)
         print('--- Ending training for {}'.format(ticker))
 
-        del trainer, evaluator, model, x_train_all, x_test_all
+        del trainer, evaluator, model, x_train_all, x_test_all, binary_y_train, binary_y_test
