@@ -36,8 +36,8 @@ class LogisticRegressor(nn.Module):
         self.e2 = nn.Embedding(7, 2)
         # +2 for embedding... 2+2-2
         self.l1 = nn.Linear(input_size + 2, 64)
-        self.l2 = nn.Linear(64, 32)
-        self.l3 = nn.Linear(32, 16)
+        self.l2 = nn.Linear(64, 16)
+        # self.l3 = nn.Linear(32, 16)
         self.l4 = nn.Linear(16, final_output_size)
 
     def forward(self, x):
@@ -48,7 +48,7 @@ class LogisticRegressor(nn.Module):
         x = torch.cat([x[:, :-2], x1, x2], dim=1)
         x = torch.relu(self.l1(x))
         x = torch.tanh(self.l2(x))
-        x = torch.tanh(self.l3(x))
+        # x = torch.tanh(self.l3(x))
         return torch.sigmoid(self.l4(x))
 
 
@@ -144,13 +144,31 @@ class PositiveStatistics(EpochMetric):
     def compute_stats(self, pred, target):
         mask = pred.ge(self.threshold)
         relevant_pred = torch.masked_select(pred, mask)
-        if (pred.shape != y_train.shape and pred.shape != y_test.shape) or relevant_pred.nelement() == 0:
+        if relevant_pred.nelement() == 0:
             return 0.0, -1.0
+
+        assert self.non_binary_y.shape == pred.shape, 'y.shape: {}, pred.shape: {}'.format(
+                                                        self.non_binary_y.shape, pred.shape)
 
         y_value = torch.masked_select(self.non_binary_y, mask)
         distribution = relevant_pred * y_value
 
         return distribution.mean(), distribution.std()
+
+
+def get_metrics(non_binary_y_target):
+    metrics = {
+                'accuracy':         BinaryAccuracy(output_transform=zero_one_transform),
+                'bce':              Loss(nn.modules.loss.BCELoss()),
+                'f1_score':         F1_Score(output_transform=zero_one_transform),
+                'roc_auc':          ROC_AUC(),
+                'precision':        Precision(output_transform=zero_one_transform),
+                'recall':           Recall(output_transform=zero_one_transform),
+                'conf_matrix':      ConfusionMatrix(output_transform=zero_one_transform),
+                'positive_stat':    PositiveStatistics(non_binary_y_target),
+    }
+    return metrics
+
 
 
 def zero_one(y_preds):
@@ -161,7 +179,7 @@ def zero_one_transform(output):
     return (zero_one(output[0])).long(), output[1].long()
 
 
-def get_transfomed_combiner(train_df):
+def get_transfomed_combiner(df):
     # Use only the ones worked well in autoencoder
     transfomer = [
         ('Data after min-max scaling',
@@ -175,16 +193,27 @@ def get_transfomed_combiner(train_df):
     ]
 
     combined = FeatureUnion(transfomer)
-    _ = combined.fit(train_df)
+    _ = combined.fit(df)
 
     return combined
+
+
+def binary_target(y_train, y_test):
+    if args.threshold >= 0.0:
+        binary_y_train = y_train > args.threshold
+        binary_y_test  = y_test > args.threshold
+    else:
+        binary_y_train = y_train < args.threshold
+        binary_y_test  = y_test < args.threshold
+
+    return binary_y_train.astype(np.int), binary_y_test.astype(np.int)
 
 
 def get_input_target(ticker):
     # messy code...
     train_df_original, test_df_original, numeric_cols, categoric_cols = load_dataframes(ticker)
     if train_df_original is None:
-        return None, None, None, None
+        return [None] * 6
 
     y_cols, not_interested = get_y_cols(numeric_cols)
     numeric_cols = list(set(numeric_cols) - set(y_cols) - set(not_interested))
@@ -197,8 +226,8 @@ def get_input_target(ticker):
     test_df, y_test = test_df_original[numeric_cols], test_df_original[y_cols]
     y_train.drop(y_train.columns[4:], axis=1, inplace=True)
     y_test.drop(y_test.columns[4:], axis=1, inplace=True)
-    binary_y_train = (y_train > args.threshold).astype(np.int)
-    binary_y_test = (y_test > args.threshold).astype(np.int)
+
+    binary_y_train, binary_y_test = binary_target(y_train, y_test)
 
     combined = get_transfomed_combiner(train_df)
 
@@ -213,22 +242,24 @@ def get_input_target(ticker):
     x_test_categorical_cols[:, 1] -= 9
 
     x_train_all = torch.cat([x_train_numerical_transformed, x_train_categorical_cols], dim=1)
-    x_test_all = torch.cat([x_test_numerical_transformed, x_test_categorical_cols], dim=1)
+    x_test_all  = torch.cat([x_test_numerical_transformed, x_test_categorical_cols], dim=1)
 
-    return x_train_all, binary_y_train, x_test_all, binary_y_test
+    return x_train_all, binary_y_train, x_test_all, binary_y_test, y_train, y_test
 
 
-def log_trainers(trainer):
+def register_evaluators(trainer, evaluator_train, evaluator_test):
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(trainer):
-        evaluator.run(train_dl)
-        metrics = evaluator.state.metrics
+        evaluator_train.run(train_dl)
+        metrics = evaluator_train.state.metrics
         if trainer.state.epoch % args.print_every == 0:
             print("Training Results  - Epoch: {} Avg accuracy: {:.5f}, Avg BCE: {:.5f}, F1 Score: {:.5f}, ROC_AUC: {:.5f}".format(
                 trainer.state.epoch, metrics['accuracy'], metrics['bce'], metrics['f1_score'], metrics['roc_auc'],))
             print("Training Results  - Epoch: {} Precision: {:.5f}, Recall: {:.5f}".format(
                 trainer.state.epoch, metrics['precision'], metrics['recall'],))
+            print("Training Results  - Epoch: {} Pred Positive Stat: {:.5f}, {:.5f}".format(
+                trainer.state.epoch, metrics['positive_stat'][0], metrics['positive_stat'][1]))
             print("Training Results  - Epoch: {} Confusion Matrix: \n{}".format(
                 trainer.state.epoch, metrics['conf_matrix'], ))
             bce_logger.info("Training Results  - Epoch: {} Avg accuracy: {:.5f}, Avg BCE: {:.5f}, F1 Score: {:.5f}, ROC_AUC: {:.5f}".format(
@@ -238,13 +269,15 @@ def log_trainers(trainer):
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(trainer):
-        evaluator.run(test_dl)
-        metrics = evaluator.state.metrics
+        evaluator_test.run(test_dl)
+        metrics = evaluator_test.state.metrics
         if trainer.state.epoch % args.print_every == 0:
             print("Validation Results- Epoch: {} Avg accuracy: {:.5f}, Avg BCE: {:.5f}, F1 Score: {:.5f}, ROC_AUC: {:.5f}".format(
                 trainer.state.epoch, metrics['accuracy'], metrics['bce'], metrics['f1_score'],metrics['roc_auc'],))
             print("Validation Results- Epoch: {} Precision: {:.5f}, Recall: {:.5f}".format(
                 trainer.state.epoch, metrics['precision'], metrics['recall'],))
+            print("Validation Results- Epoch: {} Pred Positive Stat: {:.5f}, {:.5f}".format(
+                trainer.state.epoch, metrics['positive_stat'][0], metrics['positive_stat'][1]))
             print("Validation Results- Epoch: {} Confusion Matrix: \n{}".format(
                 trainer.state.epoch, metrics['conf_matrix'], ))
             bce_logger.info("Validation Results- Epoch: {} Avg accuracy: {:.5f}, Avg BCE: {:.5f}, F1 Score: {:.5f}, ROC_AUC: {:.5f}".format(
@@ -287,11 +320,15 @@ if __name__ == '__main__':
 
         print('--- Starting training for {}'.format(ticker))
 
-        x_train_all, binary_y_train, x_test_all, binary_y_test = get_input_target(ticker)
+        (x_train_all, binary_y_train, x_test_all, binary_y_test,
+                            non_binary_y_train, non_binary_y_test) = get_input_target(ticker)
         if x_train_all is None: continue
 
         spy_dataset = TickerDataSimple(ticker, x_train_all, torch.from_numpy(binary_y_train.values).float())
         spy_testset = TickerDataSimple(ticker, x_test_all,  torch.from_numpy(binary_y_test.values).float())
+
+        non_binary_y_train = torch.from_numpy(non_binary_y_train.values).float()
+        non_binary_y_test  = torch.from_numpy(non_binary_y_test.values).float()
 
         train_dl = DataLoader(spy_dataset, num_workers=1, batch_size=args.batch_size)
         test_dl = DataLoader(spy_testset, num_workers=1, batch_size=args.batch_size)
@@ -303,21 +340,16 @@ if __name__ == '__main__':
         optimizer = torch.optim.Adam(model.parameters(), lr=5e-3, weight_decay=1e-6)
 
         trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
-        evaluator = create_supervised_evaluator(
-            model,
-            metrics={
-                'accuracy':     BinaryAccuracy(output_transform=zero_one_transform),
-                'bce':          Loss(nn.modules.loss.BCELoss()),
-                'f1_score':     F1_Score(output_transform=zero_one_transform),
-                'roc_auc':      ROC_AUC(),
-                'precision':    Precision(output_transform=zero_one_transform),
-                'recall':       Recall(output_transform=zero_one_transform),
-                'conf_matrix':  ConfusionMatrix(output_transform=zero_one_transform),},
-            device=device)
 
-        log_trainers(trainer)
+        evaluator_train = create_supervised_evaluator(
+            model, metrics=get_metrics(non_binary_y_train), device=device)
+        evaluator_test = create_supervised_evaluator(
+            model, metrics=get_metrics(non_binary_y_test), device=device)
+
+        register_evaluators(trainer, evaluator_train, evaluator_test)
 
         trainer.run(train_dl, max_epochs=args.max_epoch)
         print('--- Ending training for {}'.format(ticker))
 
-        del trainer, evaluator, model, x_train_all, x_test_all, binary_y_train, binary_y_test
+        del trainer, evaluator_train, evaluator_test, model, x_train_all, x_test_all, \
+            binary_y_train, binary_y_test
