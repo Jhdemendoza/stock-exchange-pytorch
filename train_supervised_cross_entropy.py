@@ -170,7 +170,6 @@ def get_metrics(non_binary_y_target):
     return metrics
 
 
-
 def zero_one(y_preds):
     return y_preds > 0.5
 
@@ -262,10 +261,14 @@ def register_evaluators(trainer, evaluator_train, evaluator_test):
                 trainer.state.epoch, metrics['positive_stat'][0], metrics['positive_stat'][1]))
             print("Training Results  - Epoch: {} Confusion Matrix: \n{}".format(
                 trainer.state.epoch, metrics['conf_matrix'], ))
+
             bce_logger.info("Training Results  - Epoch: {} Avg accuracy: {:.5f}, Avg BCE: {:.5f}, F1 Score: {:.5f}, ROC_AUC: {:.5f}".format(
                 trainer.state.epoch, metrics['accuracy'], metrics['bce'], metrics['f1_score'], metrics['roc_auc'],))
             bce_logger.info("Training Results  - Epoch: {} Precision: {:.5f}, Recall: {:.5f}".format(
                 trainer.state.epoch, metrics['precision'], metrics['recall'],))
+            stat_logger.info('{}, {}, train, {:.5f}, {:.5f}, {}'.format(
+                ticker, trainer.stat.epoch, metrics["positive_stat"][0], metrics["positive_stat"][1], metrics["conf_matrix"].ravel()))
+
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(trainer):
@@ -280,34 +283,45 @@ def register_evaluators(trainer, evaluator_train, evaluator_test):
                 trainer.state.epoch, metrics['positive_stat'][0], metrics['positive_stat'][1]))
             print("Validation Results- Epoch: {} Confusion Matrix: \n{}".format(
                 trainer.state.epoch, metrics['conf_matrix'], ))
+
             bce_logger.info("Validation Results- Epoch: {} Avg accuracy: {:.5f}, Avg BCE: {:.5f}, F1 Score: {:.5f}, ROC_AUC: {:.5f}".format(
                 trainer.state.epoch, metrics['accuracy'], metrics['bce'], metrics['f1_score'],metrics['roc_auc'],))
             bce_logger.info("Validation Results- Epoch: {} Precision: {:.5f}, Recall: {:.5f}".format(
                 trainer.state.epoch, metrics['precision'], metrics['recall'],))
+            stat_logger.info('{}, {}, test, {:.5f}, {:.5f}, {}'.format(
+                ticker, trainer.stat.epoch, metrics["positive_stat"][0], metrics["positive_stat"][1], metrics["conf_matrix"].ravel()))
 
+
+parser = argparse.ArgumentParser(description='Hyper-parameters for the training')
+parser.add_argument('--max_epoch',       default=50, type=int)
+parser.add_argument('--print_every',     default=10, type=int)
+parser.add_argument('--batch_size',      default=64, type=int)
+parser.add_argument('--threshold',       default=0.003, type=float)
+
+args = parser.parse_args()
+args.tickers = list(my_list)
 
 try:
     os.makedirs('logs')
 except OSError:
     print('--- log folder exists')
 
-FILE_NAME = 'logs/training_bce_{}.log'.format('_'.join(str(datetime.datetime.now()).split(' ')))
+FILE_NAME_BASIC_INFO = 'logs/training_bce_{}_{}.log'.format('_'.join(str(datetime.datetime.now()).split(' ')), args.threshold)
+FILE_NAME_STAT = 'logs/training_bce_{}_stat_{}.log'.format('_'.join(str(datetime.datetime.now()).split(' ')), args.threshold)
+
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
 bce_logger = logging.getLogger(__name__)
 bce_logger.setLevel(logging.INFO)
+stat_logger = logging.getLogger(__name__+'_stat')
+stat_logger.setLevel(logging.INFO)
 
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-file_handler = logging.FileHandler(FILE_NAME)
+file_handler = logging.FileHandler(FILE_NAME_BASIC_INFO)
 file_handler.setFormatter(formatter)
+bce_logger.addHandler(file_handler)
 
-parser = argparse.ArgumentParser(description='Hyper-parameters for the training')
-parser.add_argument('--max_epoch',       default=30, type=int)
-parser.add_argument('--print_every',     default=10, type=int)
-parser.add_argument('--batch_size',      default=64, type=int)
-parser.add_argument('--threshold',       default=0.0015, type=float)
-
-args = parser.parse_args()
-args.tickers = list(my_list)
+file_handler_stat = logging.FileHandler(FILE_NAME_STAT)
+stat_logger.addHandler(file_handler_stat)
 
 device = 'cpu'
 if torch.cuda.is_available():
@@ -350,6 +364,8 @@ if __name__ == '__main__':
 
         trainer.run(train_dl, max_epochs=args.max_epoch)
         print('--- Ending training for {}'.format(ticker))
+        bce_logger.info('--- Ending training for {}'.format(ticker))
 
         del trainer, evaluator_train, evaluator_test, model, x_train_all, x_test_all, \
             binary_y_train, binary_y_test
+
