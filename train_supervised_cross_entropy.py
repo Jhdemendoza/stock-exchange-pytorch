@@ -251,9 +251,9 @@ def register_evaluators(trainer, evaluator_train, evaluator_test):
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(trainer):
-        evaluator_train.run(train_dl)
-        metrics = evaluator_train.state.metrics
         if trainer.state.epoch % args.print_every == 0:
+            evaluator_train.run(train_dl)
+            metrics = evaluator_train.state.metrics
             print("Training Results  - Epoch: {} Avg accuracy: {:.5f}, Avg BCE: {:.5f}, F1 Score: {:.5f}, ROC_AUC: {:.5f}".format(
                 trainer.state.epoch, metrics['accuracy'], metrics['bce'], metrics['f1_score'], metrics['roc_auc'],))
             print("Training Results  - Epoch: {} Precision: {:.5f}, Recall: {:.5f}".format(
@@ -269,9 +269,9 @@ def register_evaluators(trainer, evaluator_train, evaluator_test):
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(trainer):
-        evaluator_test.run(test_dl)
-        metrics = evaluator_test.state.metrics
         if trainer.state.epoch % args.print_every == 0:
+            evaluator_test.run(test_dl)
+            metrics = evaluator_test.state.metrics
             print("Validation Results- Epoch: {} Avg accuracy: {:.5f}, Avg BCE: {:.5f}, F1 Score: {:.5f}, ROC_AUC: {:.5f}".format(
                 trainer.state.epoch, metrics['accuracy'], metrics['bce'], metrics['f1_score'],metrics['roc_auc'],))
             print("Validation Results- Epoch: {} Precision: {:.5f}, Recall: {:.5f}".format(
