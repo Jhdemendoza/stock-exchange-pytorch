@@ -21,6 +21,8 @@ my_list = {
 russell_tickers = pd.read_csv('data/russell1000.csv').Ticker.tolist()
 russell_ticker_set = set(map(lambda x: str.lower(x), russell_tickers))
 
+all_tickers = my_list | russell_ticker_set
+
 
 def get_dataframe(address):
     response = requests.get(address)
@@ -72,8 +74,6 @@ def filling_in_for_missing_data():
 
 
 if __name__ == '__main__':
-
-    all_tickers = my_list | russell_ticker_set
 
     for ticker in all_tickers:
 

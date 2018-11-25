@@ -26,7 +26,7 @@ import sklearn.metrics as sk_metrics
 from supervised import load_dataframes, get_y_cols, TickerDataSimple
 from functools import partial
 from ignite.metrics import EpochMetric
-from download_daily_data import my_list
+from download_daily_data import all_tickers
 
 
 class LogisticRegressor(nn.Module):
@@ -223,8 +223,8 @@ def get_input_target(ticker):
 
     train_df, y_train = train_df_original[numeric_cols], train_df_original[y_cols]
     test_df, y_test = test_df_original[numeric_cols], test_df_original[y_cols]
-    y_train.drop(y_train.columns[4:], axis=1, inplace=True)
-    y_test.drop(y_test.columns[4:], axis=1, inplace=True)
+    y_train.drop(y_train.columns[2:], axis=1, inplace=True)
+    y_test.drop(y_test.columns[2:], axis=1, inplace=True)
 
     binary_y_train, binary_y_test = binary_target(y_train, y_test)
 
@@ -266,8 +266,8 @@ def register_evaluators(trainer, evaluator_train, evaluator_test):
                 trainer.state.epoch, metrics['accuracy'], metrics['bce'], metrics['f1_score'], metrics['roc_auc'],))
             bce_logger.info("Training Results  - Epoch: {} Precision: {:.5f}, Recall: {:.5f}".format(
                 trainer.state.epoch, metrics['precision'], metrics['recall'],))
-            stat_logger.info('{}, {}, train, {:.5f}, {:.5f}, {}'.format(
-                ticker, trainer.stat.epoch, metrics["positive_stat"][0], metrics["positive_stat"][1], metrics["conf_matrix"].ravel()))
+            stat_logger.info('{},{},train,{:.5f},{:.5f},{}'.format(
+                ticker, trainer.state.epoch, metrics["positive_stat"][0], metrics["positive_stat"][1], metrics["conf_matrix"].ravel()))
 
 
     @trainer.on(Events.EPOCH_COMPLETED)
@@ -288,8 +288,13 @@ def register_evaluators(trainer, evaluator_train, evaluator_test):
                 trainer.state.epoch, metrics['accuracy'], metrics['bce'], metrics['f1_score'],metrics['roc_auc'],))
             bce_logger.info("Validation Results- Epoch: {} Precision: {:.5f}, Recall: {:.5f}".format(
                 trainer.state.epoch, metrics['precision'], metrics['recall'],))
-            stat_logger.info('{}, {}, test, {:.5f}, {:.5f}, {}'.format(
-                ticker, trainer.stat.epoch, metrics["positive_stat"][0], metrics["positive_stat"][1], metrics["conf_matrix"].ravel()))
+            stat_logger.info('{},{},test,{:.5f},{:.5f},{}'.format(
+                ticker, trainer.state.epoch, metrics["positive_stat"][0], metrics["positive_stat"][1], metrics["conf_matrix"].ravel()))
+
+
+def print_and_log(msg, logger):
+    print(f'{msg}')
+    logger.info(f'{msg}')
 
 
 parser = argparse.ArgumentParser(description='Hyper-parameters for the training')
@@ -299,7 +304,7 @@ parser.add_argument('--batch_size',      default=64, type=int)
 parser.add_argument('--threshold',       default=0.003, type=float)
 
 args = parser.parse_args()
-args.tickers = list(my_list)
+args.tickers = list(all_tickers)
 
 try:
     os.makedirs('logs')
@@ -332,12 +337,14 @@ if __name__ == '__main__':
 
     for ticker in args.tickers:
 
-        print('--- Starting training for {}'.format(ticker))
+        print_and_log('--- Starting training for {}'.format(ticker), bce_logger)
 
         (x_train_all, binary_y_train, x_test_all, binary_y_test,
                             non_binary_y_train, non_binary_y_test) = get_input_target(ticker)
-        if x_train_all is None: continue
+        # Not enough data
+        if (x_train_all is None) or (len(x_train_all) < 10000): continue
 
+        # This is really shitty way but for the time being, since memory is not an issue
         spy_dataset = TickerDataSimple(ticker, x_train_all, torch.from_numpy(binary_y_train.values).float())
         spy_testset = TickerDataSimple(ticker, x_test_all,  torch.from_numpy(binary_y_test.values).float())
 
@@ -363,8 +370,8 @@ if __name__ == '__main__':
         register_evaluators(trainer, evaluator_train, evaluator_test)
 
         trainer.run(train_dl, max_epochs=args.max_epoch)
-        print('--- Ending training for {}'.format(ticker))
-        bce_logger.info('--- Ending training for {}'.format(ticker))
+
+        print_and_log('--- Ending training for {}'.format(ticker), bce_logger)
 
         del trainer, evaluator_train, evaluator_test, model, x_train_all, x_test_all, \
             binary_y_train, binary_y_test
