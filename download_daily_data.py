@@ -16,12 +16,15 @@ my_list = {
      'ntes', 'sina', 'snap', 'nvs', 'adbe', 'orcl', 'cldr',
      'habt', 'aep', 'duk', 'd', 'peg', 'pcg',
      'pg', 'wm', 'tsn', 'gm', 'mu', 'pfe', 'brk.b', 'bf.a', 'lgf.a',
+     'spy',
 }
+
+etf_tickers = set(pd.read_csv('data/etf_list')['NAME'][:30])
 
 russell_tickers = pd.read_csv('data/russell1000.csv').Ticker.tolist()
 russell_ticker_set = set(map(lambda x: str.lower(x), russell_tickers))
 
-all_tickers = my_list | russell_ticker_set
+all_tickers = my_list | etf_tickers | russell_ticker_set
 
 
 def get_dataframe(address):
@@ -57,11 +60,12 @@ def filling_in_for_missing_data():
     dates = d1.date.tolist()
     dates = [''.join(x.split('-')) for x in dates]
 
-    all_tickers = my_list | russell_ticker_set
+    # all_tickers = my_list | russell_ticker_set
 
     for date in dates:
         for ticker in all_tickers:
-            address = 'https://api.iextrading.com/1.0/stock/{}/chart/date/{}'.format(ticker, date)
+            address = 'https://api.iextrading.com/1.0/stock/{}/chart/date/{}'.format(
+                ticker, date)
             ticker_df = get_dataframe(address)
             if ticker_df is not None and 'minute' in ticker_df.columns and 'date' in ticker_df.columns:
                 dates = ticker_df.date.unique()
@@ -71,6 +75,19 @@ def filling_in_for_missing_data():
                     continue
                 today = dates.item()
                 ticker_df.to_csv('data/daily_data/{}'.format(today+'_'+ticker))
+
+
+def download_one_year_ohlc():
+    for ticker in all_tickers:
+        address = 'https://api.iextrading.com/1.0/stock/{}/chart/1y'.format(ticker)
+        ticker_df = get_dataframe(address)
+        if ticker_df is not None and 'close' in ticker_df.columns and 'high' in ticker_df.columns:
+            dates = ticker_df.date.unique()
+            # It's better to check the length, nan usually means complete junk
+            if len(dates) < 1:
+                print('{}: unique dates less than one: {}'.format(ticker, dates))
+                continue
+            ticker_df.to_csv('data/ohlc/{}'.format(ticker))
 
 
 if __name__ == '__main__':
