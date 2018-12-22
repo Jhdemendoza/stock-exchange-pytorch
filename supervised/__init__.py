@@ -3,3 +3,4 @@ from supervised.models import ContinuousModelBasicConvolution, AutoEncoder
 from supervised.dataset import TickerDataDiscreteReturn, TickerDataSimple, PortfolioData
 from supervised.environment import *
 from supervised.utils import *
+from supervised.utils_ignite import get_metrics
