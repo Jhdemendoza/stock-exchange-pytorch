@@ -169,9 +169,13 @@ def delta_dataframe_with_y_columns(df, numeric_columns):
     log numerical columns, then return deltas
     '''
 
-    max_shift_forward = 20
     added_columns = []
-    for shift in [-max_shift_forward, -10, -5, 3, 5, 10, max_shift_forward]:
+
+    min_shift_forward, max_shift_forward, increment = 3, 10, 3
+    shift_dates = list(range(-max_shift_forward, -min_shift_forward,
+                             max_shift_forward // increment))
+    shift_dates += list(map(lambda x: -x, reversed(shift_dates)))
+    for shift in shift_dates:
         for col in numeric_columns:
             new_col_name = col + '_' + str(shift)
             df[new_col_name] = df[col].shift(shift)
@@ -190,7 +194,7 @@ def delta_dataframe_with_y_columns(df, numeric_columns):
     temp = df[numeric_columns] - df[numeric_columns].shift(1)
     df[numeric_columns] = temp
 
-    assert (df.index == np.arange(len(df))).all()
+    assert (df.index == np.arange(len(df))).all(), '{} vs np.arange...'.format(df.index[:10])
     df.drop(df.index[list(range(max_shift_forward))], axis=0, inplace=True)
     df.reset_index(drop=True, inplace=True)
     #                            negative max_shift_back...
@@ -252,3 +256,46 @@ def get_y_cols(numeric_cols):
     interested_cols = [item for item in price_cols if 'High' in item or 'Low' in item]
     not_interested_cols = list(set(price_cols) - set(interested_cols))
     return interested_cols, not_interested_cols
+
+
+# --------------------------------------------------------------------
+# --- ohlc for one data points per day
+# --------------------------------------------------------------------
+# So much duplicate code... but wtf...
+def ohlc_train_df_test_df(ticker):
+    first_df = pd.read_csv('data/ohlc/{}'.format(ticker))
+    if len(first_df) < (252 * 5 - 2):
+        print('Length insufficient: length of {}'.format(len(first_df)))
+        return None, None, None, None
+    # first_df.set_index('date', drop=True, inplace=True)
+    first_df.drop(first_df.columns[0], axis=1, inplace=True)
+    first_df.drop(['label',
+                   'unadjustedVolume',
+                   'changeOverTime',
+                   'change',
+                   'vwap',
+                   'changePercent'], axis=1, inplace=True)
+
+    split_idx = int(len(first_df) * 0.8)
+
+    train_df = first_df.iloc[:split_idx]
+    test_df = first_df.iloc[split_idx:]
+    test_df.reset_index(drop=True, inplace=True)
+
+    num_cols = first_df.columns.tolist()
+    num_cols.remove('date')
+
+    train_df = delta_dataframe_with_y_columns(train_df, num_cols)
+    test_df = delta_dataframe_with_y_columns(test_df, num_cols)
+
+    num_cols, cat_cols = get_numeric_categoric(train_df)
+
+    return train_df, test_df, num_cols, cat_cols
+
+
+def ohlc_get_y_cols(numeric_cols):
+    price_cols      = [item for item in numeric_cols if '-' in item]
+    interested_cols = [item for item in price_cols if 'high' in item or 'low' in item]
+    not_interested_cols = list(set(price_cols) - set(interested_cols))
+    return interested_cols, not_interested_cols
+

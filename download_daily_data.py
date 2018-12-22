@@ -79,7 +79,7 @@ def filling_in_for_missing_data():
 
 def download_one_year_ohlc():
     for ticker in all_tickers:
-        address = 'https://api.iextrading.com/1.0/stock/{}/chart/1y'.format(ticker)
+        address = 'https://api.iextrading.com/1.0/stock/{}/chart/5y'.format(ticker)
         ticker_df = get_dataframe(address)
         if ticker_df is not None and 'close' in ticker_df.columns and 'high' in ticker_df.columns:
             dates = ticker_df.date.unique()

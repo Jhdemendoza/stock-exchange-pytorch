@@ -5,7 +5,7 @@ import pandas as pd
 import time
 
 
-from download_daily_data import all_tickers, BASE_URL, my_list
+from download_daily_data import all_tickers, BASE_URL, my_list, get_dataframe
 
 
 # Looks bad.. but for now
@@ -51,18 +51,18 @@ def collect_deep():
             now = datetime.datetime.now()
             current_hour = now.__str__().split(' ')[1].split('.')[0][:5]
 
-            trading_status_url = '/deep/trading-status?symbols=spy'
+            trading_status_url = '/deep/trading-status?symbols=snap'
             trading_status = get_dataframe(BASE_URL + trading_status_url).T['status'][0] == 'T'
 
-            official_price_url = '/deep/official-price?symbols=spy'
-            official_price = len(get_dataframe(BASE_URL + official_price_url)) > 0
-
-            if ('09:29' < current_hour < '16:00') and trading_status and official_price:
+            if ('09:29' < current_hour < '16:00') and trading_status:
                 so_far = _collect_deep(so_far)
             else:
+                print('Breaking the loop: {}, {}'.format(current_hour, trading_status))
                 break
     except KeyboardInterrupt:
         print('KeyBoard Interrupt Raised!')
+    except Exception as e:
+        print(e.message, e.args)
     finally:
         return so_far
 
@@ -75,6 +75,7 @@ if __name__ == '__main__':
     data = collect_deep()
 
     if data is not None:
+        print('--- Saving... {}'.format(datetime.datetime.now()))
         today = today.replace('-', '_')
         file_name = 'data/deep/deep_data_{}'.format(today)
         # while file exists, add _
