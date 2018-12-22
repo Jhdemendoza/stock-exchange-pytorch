@@ -1,8 +1,10 @@
 from functools import partial
 from ignite.metrics import BinaryAccuracy, EpochMetric, Loss, Precision, Recall
 import sklearn.metrics as sk_metrics
+
 import torch
 import torch.nn as nn
+
 
 def sk_metric_fn(y_pred, y_targets, sk_metrics, activation=None):
     y_true = y_targets.flatten().numpy()

@@ -59,6 +59,9 @@ def give_delta_historical(df):
     return pd.DataFrame(df_values, columns=columns)
 
 
+# --------------------------------------------------------------------
+# --- ohlc for one data points per day
+# --------------------------------------------------------------------
 def process_output_data(spy_original):
     original_columns = spy_original.columns[1:]
     # shift 10, 5
@@ -76,6 +79,9 @@ def process_output_data(spy_original):
     return spy_original
 
 
+# --------------------------------------------------------------------
+# --- ohlc for one data points per day
+# --------------------------------------------------------------------
 def prepare_data(ticker, is_etf=False):
     # copy may actually be shallow, this is safe
     ticker_df_x, ticker_df_y = read_csv(ticker, is_etf), read_csv(ticker, is_etf)
@@ -95,6 +101,9 @@ def prepare_data(ticker, is_etf=False):
     return ticker_df_x, y_column
 
 
+# --------------------------------------------------------------------
+# --- minute-data
+# --------------------------------------------------------------------
 def get_processed_minute_data(df):
     cols = df.columns.tolist()
     cols_to_drop = cols[:4] + ['label', 'changeOverTime', 'close', 'high',
@@ -164,6 +173,7 @@ def delta_dataframe(df, numeric_columns):
 
 
 # Should be merged with the above function... for now...
+# Might want to throw in args for the shifts...
 def delta_dataframe_with_y_columns(df, numeric_columns):
     '''
     log numerical columns, then return deltas
@@ -203,6 +213,9 @@ def delta_dataframe_with_y_columns(df, numeric_columns):
     return df
 
 
+# --------------------------------------------------------------------
+# --- minute-data
+# --------------------------------------------------------------------
 def train_df_test_df(ticker):
     def concat_and_return_csvs(original_df, ticker_files):
         for item in ticker_files[1:]:
@@ -210,6 +223,7 @@ def train_df_test_df(ticker):
             original_df = pd.concat([original_df, this_df])
         return original_df
 
+    # daily_data := daily minute data... misnomer
     data_path = 'data/daily_data/'
     ticker_files = [item for item in os.listdir(data_path) if ticker in item.split('_')]
     ticker_files.sort()
@@ -229,6 +243,9 @@ def train_df_test_df(ticker):
     return train_df, test_df
 
 
+# --------------------------------------------------------------------
+# --- minute-data
+# --------------------------------------------------------------------
 def load_dataframes(ticker):
     train_df, test_df = train_df_test_df(ticker)
 

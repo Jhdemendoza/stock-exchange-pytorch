@@ -1,16 +1,12 @@
 import argparse
 import datetime
 import logging
-import os
 import numpy as np
-
+import os
 import warnings
 warnings.filterwarnings('ignore')
 
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.preprocessing import MaxAbsScaler
-from sklearn.preprocessing import Normalizer
-from sklearn.preprocessing import QuantileTransformer
+from sklearn.preprocessing import MinMaxScaler, MaxAbsScaler, Normalizer, QuantileTransformer
 from sklearn.pipeline import FeatureUnion
 
 import torch
@@ -50,7 +46,7 @@ class LogisticRegressor(nn.Module):
 
 class CustomLoss(torch.nn.Module):
     '''
-    Implement a simple verison of Focal Loss
+    A simple version of Focal Loss
     '''
 
     def __init__(self):
