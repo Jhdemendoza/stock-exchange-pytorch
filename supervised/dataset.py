@@ -1,6 +1,7 @@
-import pandas as pd
 import torch
 import numpy as np
+import pandas as pd
+import pickle
 from torch.utils.data import Dataset
 from supervised.environment import *
 from supervised.utils import iterable
@@ -108,6 +109,44 @@ class PortfolioData(TickerData):
 
         x = torch.FloatTensor(x)
         y = torch.FloatTensor(y)
+        return x, y
+
+
+class TickersData(Dataset):
+    def __init__(self, ticker_list, last_file_path, y_transform=None):
+        '''
+        :param ticker_list: iterable tickers
+        :param last_file_path: pickle_file (e.g. _train.pickle, _test.pickle)
+        '''
+        self.tickers = ticker_list
+        self.x = self.read_in_pickles('_x' + last_file_path)
+        self.y = self.read_in_pickles('_y' + last_file_path)
+
+        self._sanity_check()
+
+        if y_transform is not None:
+            self.y = y_transform(self.y).astype(np.float64)
+
+    def read_in_pickles(self, last_file_path):
+        numpy_tickers = []
+        for ticker in self.tickers:
+            with open('data/ohlc_processed/' + ticker + last_file_path, 'rb') as f:
+                data = pickle.load(f)
+                numpy_tickers += [data]
+        numpy_tickers = np.concatenate(numpy_tickers, axis=1)
+        numpy_tickers = numpy_tickers.astype(np.float64)
+        return numpy_tickers
+
+    def _sanity_check(self):
+        assert self.x.shape[0] == self.y.shape[0], 'x.shape != y.shape: {} vs {}'.format(
+            x.shape, y.shape)
+
+    def __len__(self):
+        return len(self.x)
+
+    def __getitem__(self, index):
+        x = self.x[index]
+        y = self.y[index]
         return x, y
 
 

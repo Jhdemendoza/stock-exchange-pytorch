@@ -1,5 +1,83 @@
+import numpy as np
 import torch
 import torch.nn as nn
+
+
+class Classifier(nn.Module):
+    def __init__(self, ticker_dim, data_point_dim, shift_dim, transform_dim, output_dim):
+        '''
+        :param ticker_dim     : dim of tickers used for the data
+        :param data_point_dim : dim of a given data point (e.g. ohlc+volume = 5)
+        :param shift_dim      : dim of shifts in time scales (e.g. 4 different shifts backs for returns)
+        :param transform_dim  : dim of different transforms (e.g. 4 different sckit-transforms)
+        :param output_dim     : dim of outputs, should be a multiple of ticker_dim (e.g. ticker_dim * 2)
+        '''
+        assert output_dim % ticker_dim == 0, 'output_dim should be divisible by ticker_dim'
+
+        self.input_dim = ticker_dim * shift_dim * data_point_dim * transform_dim
+        self.output_dim = output_dim
+
+        self.conv_channel = output_dim // ticker_dim
+
+        super(Classifier, self).__init__()
+
+        self.l1 = nn.Linear(self.input_dim, output_dim).double()
+
+        self.c1 = nn.Conv1d(1,
+                            self.conv_channel,
+                            kernel_size=shift_dim * data_point_dim,
+                            stride=shift_dim * data_point_dim).double()
+        self.c2 = nn.Conv1d(self.conv_channel,
+                            self.conv_channel,
+                            kernel_size=transform_dim,
+                            stride=transform_dim).double()
+
+        self.linear_repeat_dim, self.conv_repeat_dim = self._return_repeat_dim()
+
+        self.c3 = nn.Conv1d(self.conv_channel, 1, (1,)).double()
+
+    def _compute_conv_output_shape(self):
+        temp_input = torch.ones((1, 1, self.input_dim), requires_grad=False).double()
+        return self.c2(self.c1(temp_input)).shape
+
+    def _compute_repeat_dim(self):
+        temp_input = torch.ones((1, self.input_dim), requires_grad=False).double()
+        linear_output_shape = self.l1(temp_input).unsqueeze(1).shape
+
+        conv_output_shape = self._compute_conv_output_shape()
+
+        return [conv / linear for conv, linear in
+                zip(conv_output_shape, linear_output_shape)]
+
+    def _return_repeat_dim(self):
+        conv_div_linear_dims = self._compute_repeat_dim()
+
+        linear_output_repeat_dim = [item if item >= 1.0 else 1.0 for item in conv_div_linear_dims]
+        conv_output_repeat_dim = [1.0 if item >= 1.0 else 1 / item for item in conv_div_linear_dims]
+
+        linear_output_repeat_dim, conv_output_repeat_dim = list(map(lambda x: np.array(x).astype(int),
+                                                                    [linear_output_repeat_dim, conv_output_repeat_dim]))
+
+        return linear_output_repeat_dim, conv_output_repeat_dim
+
+    def forward(self, input):
+        linear = self.l1(input)
+        linear = torch.sigmoid(linear).unsqueeze(1)
+        linear = linear.repeat(*self.linear_repeat_dim)
+
+        conv = input.unsqueeze(1)
+        conv = torch.sigmoid(self.c1(conv))
+        conv = torch.sigmoid(self.c2(conv))
+        conv = conv.repeat(*self.conv_repeat_dim)
+
+        out = linear + conv
+        return torch.sigmoid(self.c3(out)).squeeze(1)
+
+    def show_parameter_shapes(self):
+        '''
+        Use this function as a reminder of horrible param sizes...
+        '''
+        return [param.shape for child in self.children() for param in child.parameters()]
 
 
 class Flatten(nn.Module):

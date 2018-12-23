@@ -174,14 +174,20 @@ def delta_dataframe(df, numeric_columns):
 
 # Should be merged with the above function... for now...
 # Might want to throw in args for the shifts...
-def delta_dataframe_with_y_columns(df, numeric_columns):
+def delta_dataframe_with_y_columns(df, numeric_columns, args=None):
     '''
     log numerical columns, then return deltas
     '''
 
     added_columns = []
 
-    min_shift_forward, max_shift_forward, increment = 3, 10, 3
+    if args is not None:
+        min_shift_forward = args.min_shift_forward
+        max_shift_forward = args.max_shift_forward
+        increment = args.increment
+    else:
+        min_shift_forward, max_shift_forward, increment = 3, 10, 3
+
     shift_dates = list(range(-max_shift_forward, -min_shift_forward,
                              max_shift_forward // increment))
     shift_dates += list(map(lambda x: -x, reversed(shift_dates)))
@@ -279,7 +285,7 @@ def get_y_cols(numeric_cols):
 # --- ohlc for one data points per day
 # --------------------------------------------------------------------
 # So much duplicate code... but wtf...
-def ohlc_train_df_test_df(ticker):
+def ohlc_train_df_test_df(ticker, args=None):
     first_df = pd.read_csv('data/ohlc/{}'.format(ticker))
     if len(first_df) < (252 * 5 - 2):
         print('Length insufficient: length of {}'.format(len(first_df)))
@@ -302,8 +308,8 @@ def ohlc_train_df_test_df(ticker):
     num_cols = first_df.columns.tolist()
     num_cols.remove('date')
 
-    train_df = delta_dataframe_with_y_columns(train_df, num_cols)
-    test_df = delta_dataframe_with_y_columns(test_df, num_cols)
+    train_df = delta_dataframe_with_y_columns(train_df, num_cols, args)
+    test_df = delta_dataframe_with_y_columns(test_df, num_cols, args)
 
     num_cols, cat_cols = get_numeric_categoric(train_df)
 

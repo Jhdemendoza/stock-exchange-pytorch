@@ -26,9 +26,10 @@ def get_transfomed_combiner(df):
     return combined
 
 
-def get_input_target(ticker):
+def get_input_target(ticker, args=None):
     # messy code...
-    train_df_original, test_df_original, numeric_cols, categoric_cols = ohlc_train_df_test_df(ticker)
+    train_df_original, test_df_original, numeric_cols, categoric_cols = \
+        ohlc_train_df_test_df(ticker, args=args)
     if train_df_original is None:
         return None, None, None, None
 
