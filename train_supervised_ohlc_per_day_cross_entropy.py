@@ -17,9 +17,11 @@ def binary_target(non_binary_y, threshold):
 
 
 def get_tickers():
-    from download_daily_data import my_list
+    from download_daily_data import my_list, russell_ticker_set
 
-    my_list = list(my_list)
+    all_tickers = my_list | russell_ticker_set
+
+    my_list = list(all_tickers)[:350]
     pickle_files = list(map(lambda x: x.split('_')[0], os.listdir('data/ohlc_processed/')))
     valid_tickers = [item for item in my_list if item in pickle_files]
 
@@ -46,15 +48,23 @@ def get_data_loaders_etc(args):
 
     binary_transform_fn = partial(binary_target, threshold=args.threshold)
     valid_tickers = get_tickers()
-    len_valid_tickers = len(valid_tickers)
 
     train_set = TickersData(valid_tickers, '_train.pickle', y_transform=binary_transform_fn)
     test_set = TickersData(valid_tickers, '_test.pickle', y_transform=binary_transform_fn)
     train_dl = DataLoader(train_set, num_workers=1, batch_size=args.batch_size)
     test_dl = DataLoader(test_set, num_workers=1, batch_size=args.batch_size)
 
-    non_binary_y_train = torch.DoubleTensor(train_set.read_in_pickles('_y_train.pickle'))
-    non_binary_y_test = torch.DoubleTensor(test_set.read_in_pickles('_y_test.pickle'))
+    numeric_y_train, unused_tickers_train = train_set.read_in_pickles('_y_train.pickle')
+    non_binary_y_train = torch.DoubleTensor(numeric_y_train)
+    numeric_y_test, unused_tickers_test = test_set.read_in_pickles('_y_test.pickle')
+    non_binary_y_test = torch.DoubleTensor(numeric_y_test)
+
+    assert unused_tickers_train == unused_tickers_test
+
+    for ticker in unused_tickers_train:
+        valid_tickers.remove(ticker)
+
+    len_valid_tickers = len(valid_tickers)
 
     dimension_args = get_shift_data_point_transform_dims()
 
@@ -69,7 +79,7 @@ def compute_return_distribution_on_pred(model, data_loader, non_binary_y, thresh
     :param threshold: default to 0.5 (e.g. output >= 0.5)
     :return: mean and stdev of actual outcomes from predicted true by the model
 
-    It concats outputs altogether first, then run the mask.
+    It concats outputs altogether first, then runs the mask.
     This is not an efficient way of using memory, but EpochMetric handles
     things similarly, so leave it as is for now...
     '''
@@ -154,6 +164,8 @@ def print_and_log(msg, logger):
 
 def main(args):
     print_and_log('--- Starting training: {}'.format(datetime.datetime.now()), bce_logger)
+    print_and_log('--- Parameters: batch_size: {}, threshold: {}, learning_rate: {}'.format(
+        args.batch_size, args.threshold, args.learning_rate), stat_logger)
 
     train_dl, test_dl, numerical_y_train, numerical_y_test, num_tickers, dimensions = \
         get_data_loaders_etc(args)
@@ -167,7 +179,6 @@ def main(args):
                        shift_dim=shift_dim,
                        transform_dim=transform_dim,
                        output_dim=output_dim)
-    # criterion = CustomLoss()
     criterion = torch.nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-6)
 

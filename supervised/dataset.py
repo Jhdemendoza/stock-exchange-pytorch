@@ -119,27 +119,41 @@ class TickersData(Dataset):
         :param last_file_path: pickle_file (e.g. _train.pickle, _test.pickle)
         '''
         self.tickers = ticker_list
-        self.x = self.read_in_pickles('_x' + last_file_path)
-        self.y = self.read_in_pickles('_y' + last_file_path)
+        self.x, self.unused_tickers_x = self.read_in_pickles('_x' + last_file_path)
+        self.y, self.unused_tickers_y = self.read_in_pickles('_y' + last_file_path)
 
         self._sanity_check()
+        self._remove_unused_tickers()
 
         if y_transform is not None:
             self.y = y_transform(self.y).astype(np.float64)
 
     def read_in_pickles(self, last_file_path):
         numpy_tickers = []
+        unused_tickers = []
+        data_shape = None
         for ticker in self.tickers:
             with open('data/ohlc_processed/' + ticker + last_file_path, 'rb') as f:
                 data = pickle.load(f)
+                if data_shape is None:
+                    data_shape = data.shape
+                elif data_shape != data.shape:
+                    unused_tickers += [ticker]
+                    continue
                 numpy_tickers += [data]
+
         numpy_tickers = np.concatenate(numpy_tickers, axis=1)
         numpy_tickers = numpy_tickers.astype(np.float64)
-        return numpy_tickers
+        return numpy_tickers, unused_tickers
 
     def _sanity_check(self):
-        assert self.x.shape[0] == self.y.shape[0], 'x.shape != y.shape: {} vs {}'.format(
-            x.shape, y.shape)
+        assert self.x.shape[0] == self.y.shape[0], 'x.shape != y.shape: {} vs {}'.format(x.shape, y.shape)
+        assert self.unused_tickers_x == self.unused_tickers_y
+
+    def _remove_unused_tickers(self):
+        for ticker in self.unused_tickers_x:
+            self.tickers.remove(ticker)
+
 
     def __len__(self):
         return len(self.x)
