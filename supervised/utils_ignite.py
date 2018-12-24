@@ -66,9 +66,10 @@ class PositiveStatistics(EpochMetric):
 
     def compute_stats(self, pred, target):
 
-        assert self.non_binary_y.shape == pred.shape, '::RAISE:: y.shape: {}, pred.shape: {}'.format(
-                                                        self.non_binary_y.shape, pred.shape)
-        assert pred.shape == target.shape, '::RAISE::: {} vs {}'.format(pred.shape, target.shape)
+        assert self.non_binary_y.shape == pred.shape, \
+            '::RAISE:: y.shape: {}, pred.shape: {}'.format(self.non_binary_y.shape, pred.shape)
+        assert pred.shape == target.shape, \
+            '::RAISE::: {} vs {}'.format(pred.shape, target.shape)
 
         mask = pred.ge(self.pred_threshold)
         relevant_pred = torch.masked_select(pred, mask)
@@ -80,7 +81,8 @@ class PositiveStatistics(EpochMetric):
         print('y_value.shape: {}, \n{}'.format(y_value.shape, y_value))
         distribution = relevant_pred * y_value
 
-        assert distribution.shape == target.shape, '::RAISE:::: {} vs {}'.format(distribution.shape, target.shape)
+        assert distribution.shape == target.shape, \
+            '::RAISE:::: {} vs {}'.format(distribution.shape, target.shape)
 
         return distribution.mean(), distribution.std()
 
@@ -104,5 +106,3 @@ def get_metrics(non_binary_y_target):
                # 'positive_stat':    PositiveStatistics(non_binary_y_target),
     }
     return metrics
-
-

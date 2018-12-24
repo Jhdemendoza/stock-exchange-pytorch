@@ -1,8 +1,7 @@
 import pickle
+import numpy as np
 from collections import defaultdict
-from download_daily_data import my_list
 from supervised import ohlc_get_y_cols, ohlc_train_df_test_df
-
 from sklearn.preprocessing import MinMaxScaler, MaxAbsScaler, Normalizer, QuantileTransformer
 from sklearn.pipeline import FeatureUnion
 
@@ -52,8 +51,9 @@ def get_input_target(ticker, args=None):
 if __name__ == '__main__':
 
     ticker_dict = defaultdict(bool)
+    from download_daily_data import my_list, all_tickers
 
-    my_list = list(my_list)
+    my_list = list(all_tickers)
     for ticker in my_list:
 
         if ticker in ticker_dict:

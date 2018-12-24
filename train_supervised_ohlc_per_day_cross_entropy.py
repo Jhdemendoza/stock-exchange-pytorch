@@ -61,22 +61,26 @@ def get_data_loaders_etc(args):
     return train_dl, test_dl, non_binary_y_train, non_binary_y_test, len_valid_tickers, dimension_args
 
 
-def compute_return_distribution_on_pred(model, dataloader, non_binary_y, threshold=0.5):
+def compute_return_distribution_on_pred(model, data_loader, non_binary_y, threshold=0.5):
     '''
     :param model: original model
-    :param dataloader: iterable of x, y in binary
+    :param data_loader: iterable of x, y in binary
     :param non_binary_y: non-binary version of y
-    :param threshold: default to 0.5 for output
+    :param threshold: default to 0.5 (e.g. output >= 0.5)
     :return: mean and stdev of actual outcomes from predicted true by the model
 
     It concats outputs altogether first, then run the mask.
     This is not an efficient way of using memory, but EpochMetric handles
     things similarly, so leave it as is for now...
     '''
+    model.eval()
+
     so_far = torch.tensor([], dtype=torch.float64, device=device)
-    for x, _ in dataloader:
-        out = model(x.cuda())
-        so_far = torch.cat([so_far, out], dim=0)
+
+    with torch.no_grad():
+        for x, _ in data_loader:
+            out = model(x.cuda())
+            so_far = torch.cat([so_far, out], dim=0)
 
     assert non_binary_y.shape == so_far.shape, '::RAISE:: y.shape: {}, pred.shape: {}'.format(
         non_binary_y.shape, so_far.shape)
@@ -89,6 +93,8 @@ def compute_return_distribution_on_pred(model, dataloader, non_binary_y, thresho
 
     y_value = torch.masked_select(non_binary_y, mask)
     distribution = relevant_pred * y_value
+
+    model.train()
 
     return distribution.mean(), distribution.std()
 
@@ -146,17 +152,15 @@ def print_and_log(msg, logger):
     logger.info(f'{msg}')
 
 
-
-
 def main(args):
     print_and_log('--- Starting training: {}'.format(datetime.datetime.now()), bce_logger)
 
-    train_dl, test_dl, non_binary_y_train, non_binary_y_test, num_tickers, shift_data_point_transform_dim = \
+    train_dl, test_dl, numerical_y_train, numerical_y_test, num_tickers, dimensions = \
         get_data_loaders_etc(args)
-    non_binary_y_train, non_binary_y_test = non_binary_y_train.to(device), non_binary_y_test.to(device)
+    numerical_y_train, numerical_y_test = numerical_y_train.to(device), numerical_y_test.to(device)
 
-    shift_dim, data_point_dim, transform_dim = shift_data_point_transform_dim
-    output_dim = non_binary_y_train.shape[-1]
+    shift_dim, data_point_dim, transform_dim = dimensions
+    output_dim = numerical_y_train.shape[-1]
 
     model = Classifier(num_tickers,
                        data_point_dim=data_point_dim,
@@ -169,9 +173,9 @@ def main(args):
 
     trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
     evaluator_train = create_supervised_evaluator(
-        model, metrics=get_metrics(non_binary_y_train), device=device)
+        model, metrics=get_metrics(numerical_y_train), device=device)
     evaluator_test = create_supervised_evaluator(
-        model, metrics=get_metrics(non_binary_y_test), device=device)
+        model, metrics=get_metrics(numerical_y_test), device=device)
 
     register_evaluators(trainer,
                         evaluator_train,
@@ -179,8 +183,8 @@ def main(args):
                         train_dl,
                         test_dl,
                         model,
-                        non_binary_y_train,
-                        non_binary_y_test)
+                        numerical_y_train,
+                        numerical_y_test)
 
     trainer.run(train_dl, max_epochs=args.max_epoch)
 
