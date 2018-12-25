@@ -126,7 +126,7 @@ class TickersData(Dataset):
         self._remove_unused_tickers()
 
         if y_transform is not None:
-            self.y = y_transform(self.y).astype(np.float64)
+            self.y_transformed = y_transform(self.y).astype(np.float64)
 
     def read_in_pickles(self, last_file_path):
         numpy_tickers = []
@@ -161,7 +161,8 @@ class TickersData(Dataset):
     def __getitem__(self, index):
         x = self.x[index]
         y = self.y[index]
-        return x, y
+        y_transformed = self.y_transformed[index]
+        return x, y, y_transformed
 
 
 class TickerDataSimple(Dataset):

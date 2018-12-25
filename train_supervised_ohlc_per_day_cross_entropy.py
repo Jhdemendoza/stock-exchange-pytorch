@@ -1,19 +1,31 @@
 import argparse
 import datetime
 import logging
+import numpy as np
 import os
+import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 from functools import partial
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
+from ignite._utils import convert_tensor
 from supervised import get_metrics, Classifier, TickersData, device
 import warnings
 warnings.filterwarnings('ignore')
 
 
-def binary_target(non_binary_y, threshold):
-    temp_result = non_binary_y >= threshold
-    return temp_result if threshold >= 0.0 else ~temp_result
+def _prepare_batch(batch, device=None, non_blocking=False):
+    """Prepare batch for training: pass to a device with options
+    """
+    x, _, y_transformed = batch
+    return (convert_tensor(x, device=device, non_blocking=non_blocking),
+            convert_tensor(y_transformed, device=device, non_blocking=non_blocking))
+
+
+def binary_target(non_binary_y, threshold, args):
+    threshold_expanded = np.tile(threshold, [len(non_binary_y), 1])
+    temp_result = non_binary_y >= threshold_expanded
+    return temp_result if args.percentile >= 0.5 else ~temp_result
 
 
 def get_tickers():
@@ -26,6 +38,27 @@ def get_tickers():
     valid_tickers = [item for item in my_list if item in pickle_files]
 
     return valid_tickers
+
+
+def compute_threshold_mask(given_tickers, args):
+
+    temp_set = TickersData(given_tickers, '_train.pickle')
+    original_y = pd.DataFrame(temp_set.y)
+    assert original_y.shape[1] % len(given_tickers) == 0
+    y_dim_per_ticker = original_y.shape[1] // len(given_tickers)
+
+    duplicated_tickers = np.repeat(given_tickers, y_dim_per_ticker)
+
+    half_length = len(original_y) // 2
+    original_y.drop(pd.RangeIndex(half_length, len(original_y)), inplace=True)
+    original_y.set_axis(duplicated_tickers, axis=1)
+
+    # put it in args?
+    thresholds = original_y.quantile(args.percentile)
+
+    del temp_set, original_y
+
+    return thresholds
 
 
 def get_data_loaders_etc(args):
@@ -46,22 +79,22 @@ def get_data_loaders_etc(args):
 
         return shift_dim, data_point_dim, transform_dim
 
-    binary_transform_fn = partial(binary_target, threshold=args.threshold)
     valid_tickers = get_tickers()
+    thresholds = compute_threshold_mask(valid_tickers, args)
+    binary_transform_fn = partial(binary_target, threshold=thresholds, args=args)
 
     train_set = TickersData(valid_tickers, '_train.pickle', y_transform=binary_transform_fn)
     test_set = TickersData(valid_tickers, '_test.pickle', y_transform=binary_transform_fn)
     train_dl = DataLoader(train_set, num_workers=1, batch_size=args.batch_size)
     test_dl = DataLoader(test_set, num_workers=1, batch_size=args.batch_size)
 
-    numeric_y_train, unused_tickers_train = train_set.read_in_pickles('_y_train.pickle')
-    non_binary_y_train = torch.DoubleTensor(numeric_y_train)
-    numeric_y_test, unused_tickers_test = test_set.read_in_pickles('_y_test.pickle')
-    non_binary_y_test = torch.DoubleTensor(numeric_y_test)
+    # numeric_y_train, unused_tickers_train = train_set.read_in_pickles('_y_train.pickle')
+    # non_binary_y_train = torch.DoubleTensor(numeric_y_train)
+    # numeric_y_test, unused_tickers_test = test_set.read_in_pickles('_y_test.pickle')
+    # non_binary_y_test = torch.DoubleTensor(numeric_y_test)
+    # assert unused_tickers_train == unused_tickers_test
 
-    assert unused_tickers_train == unused_tickers_test
-
-    for ticker in unused_tickers_train:
+    for ticker in train_set.tickers:
         valid_tickers.remove(ticker)
 
     len_valid_tickers = len(valid_tickers)
@@ -71,11 +104,10 @@ def get_data_loaders_etc(args):
     return train_dl, test_dl, non_binary_y_train, non_binary_y_test, len_valid_tickers, dimension_args
 
 
-def compute_return_distribution_on_pred(model, data_loader, non_binary_y, threshold=0.5):
+def compute_return_distribution_on_pred(model, data_loader, threshold=0.5):
     '''
     :param model: original model
     :param data_loader: iterable of x, y in binary
-    :param non_binary_y: non-binary version of y
     :param threshold: default to 0.5 (e.g. output >= 0.5)
     :return: mean and stdev of actual outcomes from predicted true by the model
 
@@ -165,7 +197,7 @@ def print_and_log(msg, logger):
 def main(args):
     print_and_log('--- Starting training: {}'.format(datetime.datetime.now()), bce_logger)
     print_and_log('--- Parameters: batch_size: {}, threshold: {}, learning_rate: {}'.format(
-        args.batch_size, args.threshold, args.learning_rate), stat_logger)
+        args.batch_size, args.percentile, args.learning_rate), stat_logger)
 
     train_dl, test_dl, numerical_y_train, numerical_y_test, num_tickers, dimensions = \
         get_data_loaders_etc(args)
@@ -212,8 +244,9 @@ if __name__ == '__main__':
     parser.add_argument('--shift_increment', default=3, type=int)
     parser.add_argument('--min_shift_forward',      default=3,  type=int)
     parser.add_argument('--max_shift_forward',      default=10, type=int)
-    parser.add_argument('--threshold',       default=0.02, type=float)
     parser.add_argument('--learning_rate',   default=0.01,  type=float)
+    parser.add_argument('--percentile',      default=0.9,   type=float,
+                        help='return percentile from some sample of the distributions')
 
     args = parser.parse_args()
 
@@ -223,9 +256,9 @@ if __name__ == '__main__':
         print('--- log folder exists')
 
     FILE_NAME_BASIC_INFO = 'logs/training_bce_{}_{}.log'.format(
-        '_'.join(str(datetime.datetime.now()).split(' ')), args.threshold)
+        '_'.join(str(datetime.datetime.now()).split(' ')), args.percentile)
     FILE_NAME_STAT = 'logs/training_bce_{}_stat_{}.log'.format(
-        '_'.join(str(datetime.datetime.now()).split(' ')), args.threshold)
+        '_'.join(str(datetime.datetime.now()).split(' ')), args.percentile)
 
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
