@@ -1,5 +1,8 @@
 from functools import partial
 from ignite.metrics import BinaryAccuracy, EpochMetric, Loss, Precision, Recall
+from ignite._utils import convert_tensor
+
+import numpy as np
 import sklearn.metrics as sk_metrics
 
 import torch
@@ -106,3 +109,26 @@ def get_metrics(non_binary_y_target):
                # 'positive_stat':    PositiveStatistics(non_binary_y_target),
     }
     return metrics
+
+
+def prepare_batch_empty_label(batch, device=None, non_blocking=False):
+    """Prepare batch for training: pass to a device with options
+    """
+    x, _, y_transformed = batch
+    return (convert_tensor(x, device=device, non_blocking=non_blocking),
+            convert_tensor(y_transformed, device=device, non_blocking=non_blocking))
+
+
+def prepare_batch_all(batch, device=None, non_blocking=False):
+    """Prepare batch for training: pass to a device with options
+    """
+    x, y, y_transformed = batch
+    return (convert_tensor(x, device=device, non_blocking=non_blocking),
+            convert_tensor(y, device=device, non_blocking=non_blocking),
+            convert_tensor(y_transformed, device=device, non_blocking=non_blocking))
+
+
+def get_binary_target(non_binary_y, threshold, args):
+    threshold_expanded = np.tile(threshold, [len(non_binary_y), 1])
+    temp_result = non_binary_y >= threshold_expanded
+    return temp_result if args.percentile >= 0.5 else ~temp_result

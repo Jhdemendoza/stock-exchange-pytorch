@@ -113,7 +113,7 @@ class PortfolioData(TickerData):
 
 
 class TickersData(Dataset):
-    def __init__(self, ticker_list, last_file_path, y_transform=None):
+    def __init__(self, ticker_list, last_file_path, y_transform=lambda x: x):
         '''
         :param ticker_list: iterable tickers
         :param last_file_path: pickle_file (e.g. _train.pickle, _test.pickle)
@@ -125,8 +125,7 @@ class TickersData(Dataset):
         self._sanity_check()
         self._remove_unused_tickers()
 
-        if y_transform is not None:
-            self.y_transformed = y_transform(self.y).astype(np.float64)
+        self.y_transformed = y_transform(self.y).astype(np.float64)
 
     def read_in_pickles(self, last_file_path):
         numpy_tickers = []
@@ -142,8 +141,8 @@ class TickersData(Dataset):
                     continue
                 numpy_tickers += [data]
 
-        numpy_tickers = np.concatenate(numpy_tickers, axis=1)
-        numpy_tickers = numpy_tickers.astype(np.float64)
+        numpy_tickers = np.concatenate(numpy_tickers, axis=1).astype(np.float64)
+        # numpy_tickers = numpy_tickers.astype(np.float64)
         return numpy_tickers, unused_tickers
 
     def _sanity_check(self):
@@ -154,7 +153,6 @@ class TickersData(Dataset):
         for ticker in self.unused_tickers_x:
             self.tickers.remove(ticker)
 
-
     def __len__(self):
         return len(self.x)
 
@@ -163,6 +161,31 @@ class TickersData(Dataset):
         y = self.y[index]
         y_transformed = self.y_transformed[index]
         return x, y, y_transformed
+
+
+from imblearn.combine import SMOTEENN
+class TickersDataWrapper(TickersData):
+    def __init__(self, ticker_list, last_file_path, y_transform, smote_ratio=None):
+        '''
+        :param ticker_list: iterable tickers
+        :param last_file_path: pickle_file (e.g. _train.pickle, _test.pickle)
+        :param y_transform: function to transform given labels
+        :param smote_ratio: multipliers to adjust imbalances
+
+        Wrapper class to adjust the imbalance in labels:
+        http://imbalanced-learn.org/en/stable/api.html
+        '''
+        super(TickersDataWrapper, self).__init__(ticker_list, last_file_path, y_transform)
+        self.sme = SMOTEENN(ratio=smote_ratio)
+        self.x_sampled, self.y_sampled = self.sme.fit_resample(self.x, self.y_transformed)
+
+    def __len__(self):
+        return len(self.x_sampled)
+
+    def __getitem__(self, item):
+        x = self.x_sampled[item]
+        y = self.y_sampled[item]
+        return x, y
 
 
 class TickerDataSimple(Dataset):

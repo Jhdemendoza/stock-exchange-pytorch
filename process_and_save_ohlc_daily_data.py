@@ -27,8 +27,7 @@ def get_transfomed_combiner(df):
 
 def get_input_target(ticker, args=None):
     # messy code...
-    train_df_original, test_df_original, numeric_cols, categoric_cols = \
-        ohlc_train_df_test_df(ticker, args=args)
+    train_df_original, test_df_original, numeric_cols, categoric_cols = ohlc_train_df_test_df(ticker, args=args)
     if train_df_original is None:
         return None, None, None, None
 
@@ -50,12 +49,14 @@ def get_input_target(ticker, args=None):
 
 if __name__ == '__main__':
 
-    ticker_dict = defaultdict(bool)
-    from download_daily_data import my_list, all_tickers
-
+    from download_daily_data import all_tickers
     my_list = list(all_tickers)
+    ticker_dict = defaultdict(bool)
+
     for ticker in my_list:
 
+        # This is unncessary in the current setups..
+        #     but if my_list has duplicates...
         if ticker in ticker_dict:
             continue
 
