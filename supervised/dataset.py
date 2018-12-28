@@ -141,8 +141,7 @@ class TickersData(Dataset):
                     continue
                 numpy_tickers += [data]
 
-        numpy_tickers = np.concatenate(numpy_tickers, axis=1).astype(np.float64)
-        # numpy_tickers = numpy_tickers.astype(np.float64)
+        numpy_tickers = np.concatenate(numpy_tickers, axis=1).astype(np.float32)
         return numpy_tickers, unused_tickers
 
     def _sanity_check(self):

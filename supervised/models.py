@@ -24,33 +24,35 @@ class ConvBlockTransposed(nn.Module):
         self.c1 = nn.Conv1d(self.conv_channel,
                             self.conv_channel,
                             kernel_size=(shift_dim * data_point_dim,),
-                            stride=(shift_dim * data_point_dim)).double()
+                            stride=(shift_dim * data_point_dim),
+                            bias=False)
         dim_after_c1 = self._compute_dim_after_conv1()[-1]
-        self.l1 = nn.LayerNorm(dim_after_c1).double()
+        self.l1 = nn.LayerNorm(dim_after_c1)
         self.ct1 = nn.ConvTranspose1d(self.conv_channel,
                                       self.conv_channel,
                                       kernel_size=(shift_dim * data_point_dim,),
-                                      stride=(shift_dim * data_point_dim)).double()
+                                      stride=(shift_dim * data_point_dim))
 
         self.c2 = nn.Conv1d(self.conv_channel,
                             self.conv_channel,
                             kernel_size=(transform_dim,),
-                            stride=transform_dim).double()
+                            stride=transform_dim,
+                            bias=False)
         dim_after_c2 = self._compute_dim_after_conv2()[-1]
-        self.l2 = nn.LayerNorm(dim_after_c2).double()
+        self.l2 = nn.LayerNorm(dim_after_c2)
         self.ct2 = nn.ConvTranspose1d(self.conv_channel,
                                       self.conv_channel,
                                       kernel_size=(transform_dim,),
-                                      stride=transform_dim).double()
+                                      stride=transform_dim)
 
         self.args = args
         if self.args.linear_dim > 0:
             self.linear_1 = nn.Linear(dim_after_c2,
                                       args.linear_dim,
-                                      bias=False).double()
+                                      bias=False)
             self.linear_2 = nn.Linear(args.linear_dim,
                                       dim_after_c2,
-                                      bias=False).double()
+                                      bias=False)
 
     def _compute_dim_after_conv1(self):
         c1_output = self._conv1_test_input()
@@ -61,7 +63,7 @@ class ConvBlockTransposed(nn.Module):
         return c2_output.shape
 
     def _conv1_test_input(self):
-        temp_input = torch.ones((1, self.conv_channel, self.input_dim), requires_grad=False).double()
+        temp_input = torch.ones((1, self.conv_channel, self.input_dim), requires_grad=False)
         return self.c1(temp_input)
 
     def _conv2_test_input(self):
@@ -101,13 +103,14 @@ class ConvBlockWrapper(nn.Module):
         self.original_c1 = nn.Conv1d(1,
                                      self.conv_channel,
                                      kernel_size=(shift_dim * data_point_dim,),
-                                     stride=(shift_dim * data_point_dim)).double()
+                                     stride=(shift_dim * data_point_dim),
+                                     bias=False)
         original_dim_after_c1 = self._compute_dim_after_original_conv1()
-        self.original_l1 = nn.LayerNorm(original_dim_after_c1[-1]).double()
+        self.original_l1 = nn.LayerNorm(original_dim_after_c1[-1])
         self.original_ct1 = nn.ConvTranspose1d(self.conv_channel,
                                                self.conv_channel,
                                                kernel_size=(shift_dim * data_point_dim,),
-                                               stride=(shift_dim * data_point_dim)).double()
+                                               stride=(shift_dim * data_point_dim))
 
         c2_blocks = [ConvBlockTransposed(ticker_dim,
                                          data_point_dim,
@@ -120,18 +123,20 @@ class ConvBlockWrapper(nn.Module):
         self.c1 = nn.Conv1d(self.conv_channel,
                             self.conv_channel,
                             kernel_size=(shift_dim * data_point_dim,),
-                            stride=(shift_dim * data_point_dim)).double()
+                            stride=(shift_dim * data_point_dim),
+                            bias=False)
         self.c2 = nn.Conv1d(self.conv_channel,
                             self.label_dim,
                             kernel_size=(transform_dim,),
-                            stride=transform_dim).double()
+                            stride=transform_dim,
+                            bias=False)
 
     def _compute_dim_after_original_conv1(self):
         c1_output = self._conv1_test_input()
         return c1_output.shape
 
     def _conv1_test_input(self):
-        temp_input = torch.ones((1, 1, self.input_dim), requires_grad=False).double()
+        temp_input = torch.ones((1, 1, self.input_dim), requires_grad=False)
         return self.original_c1(temp_input)
 
     def forward(self, input):
@@ -167,27 +172,27 @@ class Classifier(nn.Module):
 
         super(Classifier, self).__init__()
 
-        self.l1 = nn.Linear(self.input_dim, output_dim).double()
+        self.l1 = nn.Linear(self.input_dim, output_dim)
 
         self.c1 = nn.Conv1d(1,
                             self.conv_channel,
                             kernel_size=shift_dim * data_point_dim,
-                            stride=shift_dim * data_point_dim).double()
+                            stride=shift_dim * data_point_dim)
         self.c2 = nn.Conv1d(self.conv_channel,
                             self.conv_channel,
                             kernel_size=transform_dim,
-                            stride=transform_dim).double()
+                            stride=transform_dim)
 
         self.linear_repeat_dim, self.conv_repeat_dim = self._return_repeat_dim()
 
-        self.c3 = nn.Conv1d(self.conv_channel, 1, (1,)).double()
+        self.c3 = nn.Conv1d(self.conv_channel, 1, (1,))
 
     def _compute_conv_output_shape(self):
-        temp_input = torch.ones((1, 1, self.input_dim), requires_grad=False).double()
+        temp_input = torch.ones((1, 1, self.input_dim), requires_grad=False)
         return self.c2(self.c1(temp_input)).shape
 
     def _compute_repeat_dim(self):
-        temp_input = torch.ones((1, self.input_dim), requires_grad=False).double()
+        temp_input = torch.ones((1, self.input_dim), requires_grad=False)
         linear_output_shape = self.l1(temp_input).unsqueeze(1).shape
 
         conv_output_shape = self._compute_conv_output_shape()

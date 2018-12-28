@@ -49,13 +49,23 @@ def collect_deep():
     try:
         while True:
             now = datetime.datetime.now()
+            # Might as well regex?
             current_hour = now.__str__().split(' ')[1].split('.')[0][:5]
 
             trading_status_url = '/deep/trading-status?symbols=snap'
-            trading_status = get_dataframe(BASE_URL + trading_status_url).T['status'][0] == 'T'
+            trading_status = get_dataframe(BASE_URL + trading_status_url)
 
-            if ('09:29' < current_hour < '16:00') and trading_status:
+            if trading_status is not None and not trading_status.empty:
+                trading_status = trading_status.T['status'][0] == 'T'
+
+            print('*** Collecting data, current time: {}'.format(current_hour))
+
+            if '09:29' > current_hour:
+                time.sleep(60)
+
+            elif (current_hour < '16:00') and trading_status:
                 so_far = _collect_deep(so_far)
+
             else:
                 print('Breaking the loop: {}, {}'.format(current_hour, trading_status))
                 break

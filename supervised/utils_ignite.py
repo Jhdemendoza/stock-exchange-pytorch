@@ -115,17 +115,17 @@ def prepare_batch_empty_label(batch, device=None, non_blocking=False):
     """Prepare batch for training: pass to a device with options
     """
     x, _, y_transformed = batch
-    return (convert_tensor(x, device=device, non_blocking=non_blocking),
-            convert_tensor(y_transformed, device=device, non_blocking=non_blocking))
+    return (convert_tensor(x, device=device, non_blocking=non_blocking).float(),
+            convert_tensor(y_transformed, device=device, non_blocking=non_blocking).float())
 
 
 def prepare_batch_all(batch, device=None, non_blocking=False):
     """Prepare batch for training: pass to a device with options
     """
     x, y, y_transformed = batch
-    return (convert_tensor(x, device=device, non_blocking=non_blocking),
-            convert_tensor(y, device=device, non_blocking=non_blocking),
-            convert_tensor(y_transformed, device=device, non_blocking=non_blocking))
+    return (convert_tensor(x, device=device, non_blocking=non_blocking).float(),
+            convert_tensor(y, device=device, non_blocking=non_blocking).float(),
+            convert_tensor(y_transformed, device=device, non_blocking=non_blocking).float())
 
 
 def get_binary_target(non_binary_y, threshold, args):

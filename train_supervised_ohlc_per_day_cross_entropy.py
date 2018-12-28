@@ -97,7 +97,7 @@ def compute_return_distribution_on_pred(model, data_loader, threshold=0.5):
     This is not an efficient way of using memory, but EpochMetric handles
     things similarly, so leave it as is for now...
     '''
-    so_far = torch.tensor([], dtype=torch.float64, device=device)
+    so_far = torch.tensor([], dtype=torch.float32, device=device)
 
     with torch.no_grad():
         for batch in data_loader:
