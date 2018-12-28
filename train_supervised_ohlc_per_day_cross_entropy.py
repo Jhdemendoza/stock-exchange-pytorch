@@ -135,8 +135,7 @@ def register_evaluators(trainer,
                         test_dl,
                         model,
                         args,
-                        bce_logger,
-                        stat_logger):
+                        bce_logger):
 
     @trainer.on(Events.EPOCH_COMPLETED)
     @wrap_model_in_eval_mode(model)
@@ -147,14 +146,12 @@ def register_evaluators(trainer,
             evaluator_train.run(train_dl)
             metrics = evaluator_train.state.metrics
 
-            msg1 = "Training Results  - Epoch: {} Accuracy: {:.5f}, BCE: {:.5f}, F1 Score: {:.5f}, ROC_AUC: {:.5f}".format(
+            msg1 = "Training Results  - Epoch:{}, Accuracy:{:.5f}, BCE:{:.5f}, F1 Score:{:.5f}, ROC_AUC:{:.5f}, ".format(
                 trainer.state.epoch, metrics['accuracy'], metrics['bce'], metrics['f1_score'], metrics['roc_auc'],)
-            msg2 = "Training Results  - Epoch: {} Precision: {:.5f}, Recall: {:.5f}".format(
-                trainer.state.epoch, metrics['precision'], metrics['recall'],)
-            msg3 = '{},train,{:.5f},{:.5f},{}'.format(trainer.state.epoch, mean_stat, std_stat, metrics["conf_matrix"].ravel())
-            print_and_log(msg1, bce_logger)
-            print_and_log(msg2, bce_logger)
-            print_and_log(msg3, stat_logger)
+            msg2 = "Precision:{:.5f}, Recall:{:.5f}, ".format(metrics['precision'], metrics['recall'],)
+            msg3 = 'Mean:{:.5f}, Stdev:{:.5f}, ConfusionMatrix:{}, '.format(mean_stat, std_stat, metrics["conf_matrix"].ravel())
+
+            print_and_log(msg1+msg2+msg3, bce_logger)
             print("Training Results  - Epoch: {} Confusion Matrix: \n{}".format(
                 trainer.state.epoch, metrics['conf_matrix'], ))
 
@@ -163,22 +160,18 @@ def register_evaluators(trainer,
     def log_validation_results(trainer):
         if trainer.state.epoch % args.print_every == 0:
 
-            model.eval()
             mean_stat, std_stat = compute_return_distribution_on_pred(model, test_dl)
             evaluator_test.run(test_dl)
             metrics = evaluator_test.state.metrics
 
-            msg1 = "Validation Results  - Epoch: {} Accuracy: {:.5f}, BCE: {:.5f}, F1 Score: {:.5f}, ROC_AUC: {:.5f}".format(
+            msg1 = "Validation Results  - Epoch:{}, Accuracy:{:.5f}, BCE:{:.5f}, F1 Score:{:.5f}, ROC_AUC:{:.5f}, ".format(
                 trainer.state.epoch, metrics['accuracy'], metrics['bce'], metrics['f1_score'], metrics['roc_auc'],)
-            msg2 = "Validation Results  - Epoch: {} Precision: {:.5f}, Recall: {:.5f}".format(
-                trainer.state.epoch, metrics['precision'], metrics['recall'],)
-            msg3 = '{},test,{:.5f},{:.5f},{}'.format(trainer.state.epoch, mean_stat, std_stat, metrics["conf_matrix"].ravel())
-            print_and_log(msg1, bce_logger)
-            print_and_log(msg2, bce_logger)
-            print_and_log(msg3, stat_logger)
+            msg2 = "Precision:{:.5f}, Recall:{:.5f}, ".format(metrics['precision'], metrics['recall'],)
+            msg3 = 'Mean:{:.5f}, Stdev:{:.5f}, ConfusionMatrix:{}, '.format(mean_stat, std_stat, metrics["conf_matrix"].ravel())
+
+            print_and_log(msg1+msg2+msg3, bce_logger)
             print("Validation Results  - Epoch: {} Confusion Matrix: \n{}".format(
                 trainer.state.epoch, metrics['conf_matrix'], ))
-            model.train()
 
 
 def print_and_log(msg, logger):
@@ -186,9 +179,10 @@ def print_and_log(msg, logger):
     logger.info(f'{msg}')
 
 
-def main(args, bce_logger, stat_logger):
-    print_and_log('--- Starting training: {}'.format(datetime.datetime.now()), bce_logger)
-    print_and_log('--- Parameters: {}'.format(args), stat_logger)
+def main(args):
+    bce_logger = get_logger(args)
+
+    print_and_log('--- Starting training:{}, Parameters:{}'.format(datetime.datetime.now(), args), bce_logger)
 
     train_dl, test_dl, num_tickers, dimensions = get_data_loaders_etc(args)
     shift_dim, data_point_dim, transform_dim, output_dim = dimensions
@@ -228,17 +222,16 @@ def main(args, bce_logger, stat_logger):
                         test_dl,
                         model,
                         args,
-                        bce_logger,
-                        stat_logger)
+                        bce_logger,)
 
     trainer.run(train_dl, max_epochs=args.max_epoch)
 
     print_and_log('--- Ending training: {}'.format(datetime.datetime.now()), bce_logger)
 
 
-def get_args_and_loggers():
+def get_args():
     parser = argparse.ArgumentParser(description='Hyper-parameters for the training')
-    parser.add_argument('--max_epoch',       default=40, type=int)
+    parser.add_argument('--max_epoch',       default=30, type=int)
     parser.add_argument('--max_num_tickers', default=500, type=int)
     parser.add_argument('--print_every',     default=2, type=int)
     parser.add_argument('--batch_size',      default=64, type=int)
@@ -253,7 +246,10 @@ def get_args_and_loggers():
     parser.add_argument('--learning_rate',   default=0.01,  type=float)
     parser.add_argument('--percentile',      default=0.9,   type=float, help='percentile from a distribution')
     args = parser.parse_args()
+    return args
 
+
+def get_logger(args):
     try:
         os.makedirs('logs')
     except OSError:
@@ -261,27 +257,21 @@ def get_args_and_loggers():
 
     FILE_NAME_BASIC_INFO = 'logs/training_bce_{}_{}.log'.format(
         '_'.join(str(datetime.datetime.now()).split(' ')), args.percentile)
-    FILE_NAME_STAT = 'logs/training_bce_{}_stat_{}.log'.format(
-        '_'.join(str(datetime.datetime.now()).split(' ')), args.percentile)
 
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
     bce_logger = logging.getLogger(__name__)
     bce_logger.setLevel(logging.INFO)
-    stat_logger = logging.getLogger(__name__+'_stat')
-    stat_logger.setLevel(logging.INFO)
 
     file_handler = logging.FileHandler(FILE_NAME_BASIC_INFO)
     file_handler.setFormatter(formatter)
     bce_logger.addHandler(file_handler)
 
-    file_handler_stat = logging.FileHandler(FILE_NAME_STAT)
-    stat_logger.addHandler(file_handler_stat)
-
-    return args, bce_logger, stat_logger
+    return bce_logger
 
 
 if __name__ == '__main__':
 
-    args, bce_logger, stat_logger = get_args_and_loggers()
-    main(args, bce_logger, stat_logger)
+    args = get_args()
+
+    main(args)

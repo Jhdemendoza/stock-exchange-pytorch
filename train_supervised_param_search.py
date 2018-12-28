@@ -1,4 +1,4 @@
-from train_supervised_ohlc_per_day_cross_entropy import get_args_and_loggers, main
+from train_supervised_ohlc_per_day_cross_entropy import get_args, main
 from itertools import product
 
 
@@ -15,13 +15,13 @@ def run_param_search():
                         linear_dim,
                         percentiles):
         block_depth, const_factor, lr, l_dim, percentile = item
-        args, bce_logger, stat_logger = get_args_and_loggers()
+        args = get_args()
         args.block_depth = block_depth
         args.const_factor = const_factor
         args.learning_rate = lr
         args.linear_dim = l_dim
         args.percentile = percentile
-        main(args, bce_logger, stat_logger)
+        main(args)
 
 
 if __name__ == '__main__':
