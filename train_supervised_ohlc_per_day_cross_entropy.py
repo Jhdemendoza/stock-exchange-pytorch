@@ -73,7 +73,7 @@ def get_data_loaders_etc(args):
 
     train_set = TickersData(tentative_tickers, '_train.pickle', y_transform=binary_transform_fn)
     test_set = TickersData(tentative_tickers, '_test.pickle', y_transform=binary_transform_fn)
-    train_dl = DataLoader(train_set, num_workers=1, batch_size=args.batch_size)
+    train_dl = DataLoader(train_set, num_workers=1, batch_size=args.batch_size, shuffle=True)
     test_dl = DataLoader(test_set, num_workers=1, batch_size=args.batch_size)
 
     for ticker in train_set.unused_tickers_y:
@@ -133,7 +133,10 @@ def register_evaluators(trainer,
                         evaluator_test,
                         train_dl,
                         test_dl,
-                        model):
+                        model,
+                        args,
+                        bce_logger,
+                        stat_logger):
 
     @trainer.on(Events.EPOCH_COMPLETED)
     @wrap_model_in_eval_mode(model)
@@ -183,10 +186,9 @@ def print_and_log(msg, logger):
     logger.info(f'{msg}')
 
 
-def main(args):
+def main(args, bce_logger, stat_logger):
     print_and_log('--- Starting training: {}'.format(datetime.datetime.now()), bce_logger)
-    print_and_log('--- Parameters: batch_size: {}, threshold: {}, learning_rate: {}'.format(
-        args.batch_size, args.percentile, args.learning_rate), stat_logger)
+    print_and_log('--- Parameters: {}'.format(args), stat_logger)
 
     train_dl, test_dl, num_tickers, dimensions = get_data_loaders_etc(args)
     shift_dim, data_point_dim, transform_dim, output_dim = dimensions
@@ -200,7 +202,8 @@ def main(args):
                              data_point_dim=data_point_dim,
                              shift_dim=shift_dim,
                              transform_dim=transform_dim,
-                             output_dim=output_dim)
+                             output_dim=output_dim,
+                             args=args)
     criterion = torch.nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-6)
 
@@ -223,7 +226,10 @@ def main(args):
                         evaluator_test,
                         train_dl,
                         test_dl,
-                        model)
+                        model,
+                        args,
+                        bce_logger,
+                        stat_logger)
 
     trainer.run(train_dl, max_epochs=args.max_epoch)
 
@@ -232,13 +238,16 @@ def main(args):
 
 def get_args_and_loggers():
     parser = argparse.ArgumentParser(description='Hyper-parameters for the training')
-    parser.add_argument('--max_epoch',       default=500, type=int)
-    parser.add_argument('--max_num_tickers', default=400, type=int)
-    parser.add_argument('--print_every',     default=50, type=int)
+    parser.add_argument('--max_epoch',       default=40, type=int)
+    parser.add_argument('--max_num_tickers', default=500, type=int)
+    parser.add_argument('--print_every',     default=2, type=int)
     parser.add_argument('--batch_size',      default=64, type=int)
     parser.add_argument('--data_point_dim',  default=5, type=int)
     parser.add_argument('--transform_dim',   default=4, type=int)
     parser.add_argument('--shift_increment', default=3, type=int)
+    parser.add_argument('--block_depth',     default=4, type=int)
+    parser.add_argument('--const_factor',    default=4, type=int, help='arbitrary constant used for computing output dim')
+    parser.add_argument('--linear_dim',      default=4, type=int)
     parser.add_argument('--min_shift_forward',      default=3,  type=int)
     parser.add_argument('--max_shift_forward',      default=10, type=int)
     parser.add_argument('--learning_rate',   default=0.01,  type=float)
@@ -275,4 +284,4 @@ def get_args_and_loggers():
 if __name__ == '__main__':
 
     args, bce_logger, stat_logger = get_args_and_loggers()
-    main(args)
+    main(args, bce_logger, stat_logger)

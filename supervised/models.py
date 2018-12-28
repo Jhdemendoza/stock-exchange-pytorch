@@ -4,8 +4,7 @@ import torch.nn as nn
 
 
 class ConvBlockTransposed(nn.Module):
-    CONST = 4
-    def __init__(self, ticker_dim, data_point_dim, shift_dim, transform_dim, output_dim):
+    def __init__(self, ticker_dim, data_point_dim, shift_dim, transform_dim, output_dim, args):
         '''
         :param ticker_dim     : number of tickers used for the data
         :param data_point_dim : dim of a given data point (e.g. ohlc+volume = 5)
@@ -18,7 +17,7 @@ class ConvBlockTransposed(nn.Module):
         self.input_dim = ticker_dim * shift_dim * data_point_dim * transform_dim
         self.output_dim = output_dim
         self.label_dim = output_dim // ticker_dim
-        self.conv_channel = self.label_dim * self.CONST
+        self.conv_channel = self.label_dim * args.const_factor
 
         super(ConvBlockTransposed, self).__init__()
 
@@ -26,8 +25,8 @@ class ConvBlockTransposed(nn.Module):
                             self.conv_channel,
                             kernel_size=(shift_dim * data_point_dim,),
                             stride=(shift_dim * data_point_dim)).double()
-        dim_after_c1 = self._compute_dim_after_conv1()
-        self.l1 = nn.LayerNorm(dim_after_c1[-1]).double()
+        dim_after_c1 = self._compute_dim_after_conv1()[-1]
+        self.l1 = nn.LayerNorm(dim_after_c1).double()
         self.ct1 = nn.ConvTranspose1d(self.conv_channel,
                                       self.conv_channel,
                                       kernel_size=(shift_dim * data_point_dim,),
@@ -37,12 +36,21 @@ class ConvBlockTransposed(nn.Module):
                             self.conv_channel,
                             kernel_size=(transform_dim,),
                             stride=transform_dim).double()
-        dim_after_c2 = self._compute_dim_after_conv2()
-        self.l2 = nn.LayerNorm(dim_after_c2[-1]).double()
+        dim_after_c2 = self._compute_dim_after_conv2()[-1]
+        self.l2 = nn.LayerNorm(dim_after_c2).double()
         self.ct2 = nn.ConvTranspose1d(self.conv_channel,
                                       self.conv_channel,
                                       kernel_size=(transform_dim,),
                                       stride=transform_dim).double()
+
+        self.args = args
+        if self.args.linear_dim > 0:
+            self.linear_1 = nn.Linear(dim_after_c2,
+                                      args.linear_dim,
+                                      bias=False).double()
+            self.linear_2 = nn.Linear(args.linear_dim,
+                                      dim_after_c2,
+                                      bias=False).double()
 
     def _compute_dim_after_conv1(self):
         c1_output = self._conv1_test_input()
@@ -63,15 +71,18 @@ class ConvBlockTransposed(nn.Module):
     def forward(self, input):
         out = torch.relu(self.l1(self.c1(input)))
         out = torch.relu(self.l2(self.c2(out)))
+
+        if self.args.linear_dim > 0:
+            out = torch.tanh(self.linear_1(out))
+            out = torch.tanh(self.linear_2(out))
+
         out = self.ct2(out)
         out = self.ct1(out) + input
         return out
 
 
 class ConvBlockWrapper(nn.Module):
-    BLOCK_DEPTH = 4
-    CONST = 4
-    def __init__(self, ticker_dim, data_point_dim, shift_dim, transform_dim, output_dim):
+    def __init__(self, ticker_dim, data_point_dim, shift_dim, transform_dim, output_dim, args):
         '''
         :param ticker_dim     : number of tickers used for the data
         :param data_point_dim : dim of a given data point (e.g. ohlc+volume = 5)
@@ -84,7 +95,7 @@ class ConvBlockWrapper(nn.Module):
         self.input_dim = ticker_dim * shift_dim * data_point_dim * transform_dim
         self.output_dim = output_dim
         self.label_dim = output_dim // ticker_dim
-        self.conv_channel = self.label_dim * self.CONST
+        self.conv_channel = self.label_dim * args.const_factor
 
         super(ConvBlockWrapper, self).__init__()
         self.original_c1 = nn.Conv1d(1,
@@ -102,7 +113,8 @@ class ConvBlockWrapper(nn.Module):
                                          data_point_dim,
                                          shift_dim,
                                          transform_dim,
-                                         output_dim) for _ in range(self.BLOCK_DEPTH)]
+                                         output_dim,
+                                         args) for _ in range(args.block_depth)]
         self.mid_blocks = nn.Sequential(*c2_blocks)
 
         self.c1 = nn.Conv1d(self.conv_channel,
