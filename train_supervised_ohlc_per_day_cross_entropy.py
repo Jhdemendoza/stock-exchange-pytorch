@@ -180,7 +180,7 @@ def print_and_log(msg, logger):
 
 
 def main(args):
-    bce_logger = get_logger(args)
+    bce_logger, file_handler = get_logger(args)
 
     print_and_log('--- Starting training:{}, Parameters:{}'.format(datetime.datetime.now(), args), bce_logger)
 
@@ -228,12 +228,15 @@ def main(args):
 
     print_and_log('--- Ending training: {}'.format(datetime.datetime.now()), bce_logger)
 
+    bce_logger.removeHandler(file_handler)
+    del bce_logger, file_handler
+
 
 def get_args():
     parser = argparse.ArgumentParser(description='Hyper-parameters for the training')
-    parser.add_argument('--max_epoch',       default=30, type=int)
-    parser.add_argument('--max_num_tickers', default=500, type=int)
-    parser.add_argument('--print_every',     default=2, type=int)
+    parser.add_argument('--max_epoch',       default=3, type=int)
+    parser.add_argument('--max_num_tickers', default=800, type=int)
+    parser.add_argument('--print_every',     default=1, type=int)
     parser.add_argument('--batch_size',      default=64, type=int)
     parser.add_argument('--data_point_dim',  default=5, type=int)
     parser.add_argument('--transform_dim',   default=4, type=int)
@@ -267,11 +270,10 @@ def get_logger(args):
     file_handler.setFormatter(formatter)
     bce_logger.addHandler(file_handler)
 
-    return bce_logger
+    return bce_logger, file_handler
 
 
 if __name__ == '__main__':
 
     args = get_args()
-
     main(args)

@@ -177,11 +177,13 @@ class Classifier(nn.Module):
         self.c1 = nn.Conv1d(1,
                             self.conv_channel,
                             kernel_size=shift_dim * data_point_dim,
-                            stride=shift_dim * data_point_dim)
+                            stride=shift_dim * data_point_dim,
+                            bias=False)
         self.c2 = nn.Conv1d(self.conv_channel,
                             self.conv_channel,
                             kernel_size=transform_dim,
-                            stride=transform_dim)
+                            stride=transform_dim,
+                            bias=False)
 
         self.linear_repeat_dim, self.conv_repeat_dim = self._return_repeat_dim()
 
