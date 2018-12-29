@@ -113,12 +113,13 @@ class PortfolioData(TickerData):
 
 
 class TickersData(Dataset):
-    def __init__(self, ticker_list, last_file_path, y_transform=lambda x: x):
+    def __init__(self, ticker_list, last_file_path, y_transform=lambda x: x, path='data/ohlc_processed/'):
         '''
         :param ticker_list: iterable tickers
         :param last_file_path: pickle_file (e.g. _train.pickle, _test.pickle)
         '''
         self.tickers = ticker_list
+        self.path = path
         self.x, self.unused_tickers_x = self.read_in_pickles('_x' + last_file_path)
         self.y, self.unused_tickers_y = self.read_in_pickles('_y' + last_file_path)
 
@@ -132,7 +133,7 @@ class TickersData(Dataset):
         unused_tickers = []
         data_shape = None
         for ticker in self.tickers:
-            with open('data/ohlc_processed/' + ticker + last_file_path, 'rb') as f:
+            with open(self.path + ticker + last_file_path, 'rb') as f:
                 data = pickle.load(f)
                 if data_shape is None:
                     data_shape = data.shape

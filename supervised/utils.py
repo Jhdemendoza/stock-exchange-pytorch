@@ -229,10 +229,10 @@ def delta_dataframe_with_y_columns_new(df, numeric_columns, args=None):
     if args is not None:
         min_shift_forward = args.min_shift_forward
         max_shift_forward = args.max_shift_forward
-        increment = args.increment
+        increment = args.shift_increment
         target_shift = args.target_shift
     else:
-        min_shift_forward, max_shift_forward, increment, target_shift = 4, 30, 4, 10
+        min_shift_forward, max_shift_forward, increment, target_shift = 4, 30, 6, 10
 
     # Just do this because it makes our life easier...
     shift_dates = list(range(-max_shift_forward, -min_shift_forward, increment))
@@ -248,19 +248,20 @@ def delta_dataframe_with_y_columns_new(df, numeric_columns, args=None):
     # for lookbacks
     for new_col in added_columns:
         original_col, added_part = new_col.split('_')
-        df[new_col] = df[new_col] - df[original_col] if '-' in added_part else \
-            df[original_col] - df[new_col]
+        df[new_col] = (df[new_col] - df[original_col] if '-' in added_part else
+                       df[original_col] - df[new_col] )
 
     # for today
     # This line is necessary
     temp = df[numeric_columns] - df[numeric_columns].shift(1)
     df[numeric_columns] = temp
 
-    assert (df.index == np.arange(len(df))).all(), '{} vs np.arange...'.format(df.index[:10])
-    df.drop(df.index[list(range(max_shift_forward))], axis=0, inplace=True)
-    df.reset_index(drop=True, inplace=True)
+    assert (df.index == np.arange(len(df))).all(), '{} vs np.arange...'.format(df.index)
+
     #                            negative max_shift_back...
     df.drop(index=list(range(len(df) - target_shift, len(df))), inplace=True)
+    df.drop(index=list(range(max_shift_forward)), inplace=True)
+    df.reset_index(drop=True, inplace=True)
 
     return df
 
@@ -333,19 +334,21 @@ def get_y_cols(numeric_cols):
 # So much duplicate code... but wtf...
 def ohlc_train_df_test_df(ticker, args=None):
     first_df = get_original_df(ticker)
-    first_df = get_features(first_df, args)
-
-    split_idx = int(len(first_df) * 0.8)
-
-    train_df = first_df.iloc[:split_idx]
-    test_df = first_df.iloc[split_idx:]
-    test_df.reset_index(drop=True, inplace=True)
-
     num_cols = first_df.columns.tolist()
     num_cols.remove('date')
 
-    train_df = delta_dataframe_with_y_columns(train_df, num_cols, args)
-    test_df = delta_dataframe_with_y_columns(test_df, num_cols, args)
+    if args is not None and args.create_more_features:
+        first_df = get_features(first_df, args, num_cols)
+        num_cols, _ = get_numeric_categoric(first_df)
+
+    split_idx = int(len(first_df) * 0.8)
+
+    train_df = first_df.iloc[:split_idx].copy()
+    test_df = first_df.iloc[split_idx:].copy()
+    test_df.reset_index(drop=True, inplace=True)
+
+    train_df = delta_dataframe_with_y_columns_new(train_df, num_cols, args)
+    test_df = delta_dataframe_with_y_columns_new(test_df, num_cols, args)
 
     num_cols, cat_cols = get_numeric_categoric(train_df)
 
@@ -381,20 +384,20 @@ def get_original_df(ticker):
 # --------------------------------------------------------------------
 # --- ohlc for one data points per day
 # --------------------------------------------------------------------
-def get_features(df, args):
-
+def get_features(df, args, numeric_cols):
     window_max = args.max_shift_forward
     window_min = args.target_shift if args.target_shift < args.min_shift_forward else args.min_shift_forward
     window_mid = (window_min + window_max) // 2
 
-    assert 'close' in df.columns
+    for col in numeric_cols:
+        # Do not use underscore `_` because delta_dataframe_fn looks for it!!!
+        for item in [window_min, window_mid, window_max]:
+            name = col + str(item) + 'Ma'
+            df[name] = df[col].rolling(window=item).mean()
+            df[name + 'Std'] = df[col].rolling(window=item).std()
 
-    for item in [window_min, window_mid, window_max]:
-        name = 'close_' + str(item) + '_ma'
-        df[name] = df['close'].rolling(window=item).mean()
-        df[name + '_std'] = df['close'].rolling(window=item).std()
-        df[name + '_bb_high'] = df[name] + 2 * df[name + '_std']
-        df[name + '_bb_low'] = df[name] - 2 * df[name + '_std']
-    # Since args.max_shift_forward is how much we drop in the delta function,
-    #     do not worry about resetting index here!
+    # Although we drop max_shift_forward in the delta function,
+    #     delta function still requires dropping early on to not make a mess
+    df.drop(index=list(range(window_max)), inplace=True)
+    df.reset_index(drop=True, inplace=True)
     return df

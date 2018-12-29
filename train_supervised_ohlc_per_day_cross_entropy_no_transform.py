@@ -20,7 +20,7 @@ def get_tickers(args):
     all_tickers = my_list | russell_ticker_set
 
     my_list = list(all_tickers)[:args.max_num_tickers]
-    pickle_files = list(map(lambda x: x.split('_')[0], os.listdir('data/ohlc_processed/')))
+    pickle_files = list(map(lambda x: x.split('_')[0], os.listdir(args.data_path)))
     valid_tickers = [item for item in my_list if item in pickle_files]
 
     return valid_tickers
@@ -28,7 +28,7 @@ def get_tickers(args):
 
 def compute_threshold_mask(given_tickers, args):
 
-    temp_set = TickersData(given_tickers, '_train.pickle')
+    temp_set = TickersData(given_tickers, '_train.pickle', path=args.data_path)
     original_y = pd.DataFrame(temp_set.y)
     len_given_tickers = len(given_tickers)
     assert original_y.shape[1] % len_given_tickers == 0
@@ -51,13 +51,9 @@ def compute_threshold_mask(given_tickers, args):
 def get_data_loaders_etc(args):
     def get_shift_data_point_transform_dims():
         # + 1 comes from today's shift
-        # args.shift_increment should replace with new changes
-        # Refer to train_supervised_ohlc_per_day_corss_entropy_no_transform
-        #   and changes in supervised.utils.delta_dataframe_with_y_columns_new
         shift_dim = len(list(range(-args.max_shift_forward,
                                    -args.min_shift_forward,
-                                   args.max_shift_forward // args.shift_increment))) + 1
-        # for a new version: ----> args.shift_increment))) + 1
+                                   args.shift_increment))) + 1
 
         # Usually, ohlc+volume = 5
         data_point_dim = args.data_point_dim
@@ -76,8 +72,8 @@ def get_data_loaders_etc(args):
     thresholds = compute_threshold_mask(tentative_tickers, args)
     binary_transform_fn = partial(get_binary_target, threshold=thresholds, args=args)
 
-    train_set = TickersData(tentative_tickers, '_train.pickle', y_transform=binary_transform_fn)
-    test_set = TickersData(tentative_tickers, '_test.pickle', y_transform=binary_transform_fn)
+    train_set = TickersData(tentative_tickers, '_train.pickle', y_transform=binary_transform_fn, path=args.data_path)
+    test_set = TickersData(tentative_tickers, '_test.pickle', y_transform=binary_transform_fn, path=args.data_path)
     train_dl = DataLoader(train_set, num_workers=1, batch_size=args.batch_size, shuffle=True)
     test_dl = DataLoader(test_set, num_workers=1, batch_size=args.batch_size)
 
@@ -243,16 +239,19 @@ def get_args():
     parser.add_argument('--max_num_tickers', default=800, type=int)
     parser.add_argument('--print_every',     default=1, type=int)
     parser.add_argument('--batch_size',      default=64, type=int)
-    parser.add_argument('--data_point_dim',  default=5, type=int)
-    parser.add_argument('--transform_dim',   default=4, type=int)
-    parser.add_argument('--shift_increment', default=3, type=int)
+    parser.add_argument('--data_point_dim',  default=7*5, type=int,
+                        help='original data point:1 + ((min, mid, max)*[MovingAvg, MovingSTD]):6')
+    parser.add_argument('--transform_dim',   default=1, type=int)
+    parser.add_argument('--shift_increment', default=5, type=int)
     parser.add_argument('--block_depth',     default=4, type=int)
     parser.add_argument('--const_factor',    default=4, type=int, help='arbitrary constant used for computing output dim')
     parser.add_argument('--linear_dim',      default=4, type=int)
-    parser.add_argument('--min_shift_forward',      default=3,  type=int)
-    parser.add_argument('--max_shift_forward',      default=10, type=int)
+    parser.add_argument('--min_shift_forward',      default=4,  type=int)
+    parser.add_argument('--max_shift_forward',      default=20, type=int)
     parser.add_argument('--learning_rate',   default=0.01,  type=float)
     parser.add_argument('--percentile',      default=0.9,   type=float, help='percentile from a distribution')
+    parser.add_argument('--data_path',       default='data/ohlc_processed_no_transform/',   type=str)
+
     args = parser.parse_args()
     return args
 

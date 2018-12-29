@@ -15,6 +15,7 @@ class ConvBlockTransposed(nn.Module):
         assert output_dim % ticker_dim == 0, 'output_dim should be divisible by ticker_dim'
 
         self.input_dim = ticker_dim * shift_dim * data_point_dim * transform_dim
+        self.transform_dim = transform_dim
         self.output_dim = output_dim
         self.label_dim = output_dim // ticker_dim
         self.conv_channel = self.label_dim * args.const_factor
@@ -72,6 +73,7 @@ class ConvBlockTransposed(nn.Module):
 
     def forward(self, input):
         out = torch.relu(self.l1(self.c1(input)))
+
         out = torch.relu(self.l2(self.c2(out)))
 
         if self.args.linear_dim > 0:
@@ -95,6 +97,7 @@ class ConvBlockWrapper(nn.Module):
         assert output_dim % ticker_dim == 0, 'output_dim should be divisible by ticker_dim'
 
         self.input_dim = ticker_dim * shift_dim * data_point_dim * transform_dim
+        # self.transform_dim = transform_dim
         self.output_dim = output_dim
         self.label_dim = output_dim // ticker_dim
         self.conv_channel = self.label_dim * args.const_factor

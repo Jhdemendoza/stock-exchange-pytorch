@@ -6,7 +6,7 @@ def run_param_search():
     block_depths = [3, 4]
     const_factors = [8, ]
     learning_rate = [0.01, ]
-    linear_dim = [2, 3]
+    linear_dim = [2, 3, 4]
     percentiles = [0.1, 0.2, 0.3, 0.35, 0.65, 0.7, 0.8, 0.9]
 
     for item in product(block_depths,
