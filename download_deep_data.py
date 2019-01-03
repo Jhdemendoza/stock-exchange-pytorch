@@ -58,9 +58,9 @@ def collect_deep():
             if trading_status is not None and not trading_status.empty:
                 trading_status = trading_status.T['status'][0] == 'T'
 
-            print('*** Collecting data, current time: {}'.format(current_hour))
-
             if '09:29' > current_hour:
+                print('*** Collecting data, current time: {}'.format(current_hour))
+                print('***     Going to sleep for 1 minute... ')
                 time.sleep(60)
 
             elif (current_hour < '16:00') and trading_status:

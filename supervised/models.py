@@ -218,12 +218,12 @@ class Classifier(nn.Module):
 
     def forward(self, input):
         linear = self.l1(input)
-        linear = torch.sigmoid(linear).unsqueeze(1)
+        linear = torch.relu(linear).unsqueeze(1)
         linear = linear.repeat(*self.linear_repeat_dim)
 
         conv = input.unsqueeze(1)
-        conv = torch.sigmoid(self.c1(conv))
-        conv = torch.sigmoid(self.c2(conv))
+        conv = torch.relu(self.c1(conv))
+        conv = torch.relu(self.c2(conv))
         conv = conv.repeat(*self.conv_repeat_dim)
 
         out = linear + conv

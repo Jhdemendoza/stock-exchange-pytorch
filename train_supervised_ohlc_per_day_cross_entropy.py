@@ -131,8 +131,6 @@ def wrap_model_in_eval_mode(model):
     return _wrap_model_in_eval_mode
 
 
-# Should wrap things in decorators or something...
-# Refactor please...
 def register_evaluators(trainer,
                         evaluator_train,
                         evaluator_test,

@@ -60,7 +60,7 @@ def give_delta_historical(df):
 
 
 # --------------------------------------------------------------------
-# --- ohlc for one data points per day
+# --- ohlc for one data point per day
 # --------------------------------------------------------------------
 def process_output_data(spy_original):
     original_columns = spy_original.columns[1:]
@@ -80,7 +80,7 @@ def process_output_data(spy_original):
 
 
 # --------------------------------------------------------------------
-# --- ohlc for one data points per day
+# --- ohlc for one data point per day
 # --------------------------------------------------------------------
 def prepare_data(ticker, is_etf=False):
     # copy may actually be shallow, this is safe
@@ -329,7 +329,7 @@ def get_y_cols(numeric_cols):
 
 
 # --------------------------------------------------------------------
-# --- ohlc for one data points per day
+# --- ohlc for one data point per day
 # --------------------------------------------------------------------
 # So much duplicate code... but wtf...
 def ohlc_train_df_test_df(ticker, args=None):
@@ -363,7 +363,7 @@ def ohlc_get_y_cols(numeric_cols):
 
 
 # --------------------------------------------------------------------
-# --- ohlc for one data points per day
+# --- ohlc for one data point per day
 # --------------------------------------------------------------------
 def get_original_df(ticker):
     first_df = pd.read_csv('data/ohlc/{}'.format(ticker))
@@ -382,7 +382,7 @@ def get_original_df(ticker):
 
 
 # --------------------------------------------------------------------
-# --- ohlc for one data points per day
+# --- ohlc for one data point per day
 # --------------------------------------------------------------------
 def get_features(df, args, numeric_cols):
     window_max = args.max_shift_forward
