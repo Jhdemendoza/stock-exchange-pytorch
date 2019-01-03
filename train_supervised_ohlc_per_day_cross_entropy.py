@@ -234,12 +234,12 @@ def main(args):
     print_and_log('--- Ending training: {}'.format(datetime.datetime.now()), bce_logger)
 
     bce_logger.removeHandler(file_handler)
-    del bce_logger, file_handler
+    del bce_logger, file_handler, train_dl, test_dl, model, optimizer, criterion, evaluator_train, evaluator_test
 
 
 def get_args():
     parser = argparse.ArgumentParser(description='Hyper-parameters for the training')
-    parser.add_argument('--max_epoch',       default=24, type=int)
+    parser.add_argument('--max_epoch',       default=32, type=int)
     parser.add_argument('--max_num_tickers', default=800, type=int)
     parser.add_argument('--print_every',     default=1, type=int)
     parser.add_argument('--batch_size',      default=64, type=int)
