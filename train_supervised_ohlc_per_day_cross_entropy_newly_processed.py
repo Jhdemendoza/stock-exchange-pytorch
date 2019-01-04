@@ -10,6 +10,7 @@ from functools import partial, wraps
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from supervised import get_metrics, TickersData, device, ConvBlockWrapper, ConvBlockWrapperNew
 from supervised.utils_ignite import prepare_batch_all, prepare_batch_empty_label, get_binary_target
+from utils.util import create_path
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -247,8 +248,8 @@ def main(args):
 
 def get_args():
     parser = argparse.ArgumentParser(description='Hyper-parameters for the training')
-    parser.add_argument('--max_epoch',       default=32, type=int)
-    parser.add_argument('--max_num_tickers', default=400, type=int)
+    parser.add_argument('--max_epoch',       default=40, type=int)
+    parser.add_argument('--max_num_tickers', default=800, type=int)
     parser.add_argument('--print_every',     default=1, type=int)
     parser.add_argument('--batch_size',      default=64, type=int)
     parser.add_argument('--data_point_dim',  default=5, type=int)
@@ -261,26 +262,31 @@ def get_args():
                         help='arbitrary linear dim used in blocks')
     parser.add_argument('--learning_rate',   default=0.01,  type=float)
     parser.add_argument('--percentile',      default=0.8,   type=float, help='percentile from a distribution')
-    parser.add_argument('--file_path',       default='data/ohlc_processed_transform/',   type=str)
+    parser.add_argument('--file_path',       default='data/ohlc_processed_transform_backup/',   type=str)
+    parser.add_argument('--log_folder_path', default='logs/', type=str)
     args = parser.parse_args()
     return args
 
 
 def get_logger(args):
-    try:
-        os.makedirs('logs')
-    except OSError:
-        print('--- log folder exists')
-
-    FILE_NAME_BASIC_INFO = 'logs/training_bce_{}_{}.log'.format(
-        '_'.join(str(datetime.datetime.now()).split(' ')), args.percentile)
+    args.log_folder_path = create_path(args, args.log_folder_path)
+    log_file_path = (args.log_folder_path +
+                     'training_bce_{}_{}'
+                     .format('_'
+                             .join(datetime
+                                   .datetime
+                                   .now()
+                                   .__str__()
+                                   .split('.')[0]
+                                   .split(' ')),
+                             args.percentile))
 
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
     bce_logger = logging.getLogger(__name__)
     bce_logger.setLevel(logging.INFO)
 
-    file_handler = logging.FileHandler(FILE_NAME_BASIC_INFO)
+    file_handler = logging.FileHandler(log_file_path)
     file_handler.setFormatter(formatter)
     bce_logger.addHandler(file_handler)
 

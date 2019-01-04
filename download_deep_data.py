@@ -3,6 +3,7 @@ import glob
 import math
 import pandas as pd
 import time
+import re
 
 
 from download_daily_data import all_tickers, BASE_URL, my_list, get_dataframe
@@ -13,7 +14,7 @@ my_list = list(my_list)
 def get_tickers_in_tuple():
     ticker_tuples = []
     for idx in range(math.ceil(len(my_list) / 10)):
-        this_tuple = my_list[idx * 10:(idx + 1) * 10]
+        this_tuple = my_list[idx*10:(idx+1)*10]
         this_tuple = ','.join(this_tuple)
         ticker_tuples += [this_tuple]
     return ticker_tuples
@@ -30,7 +31,8 @@ def _collect_deep(so_far):
         for tickers in get_tickers_in_tuple():
             my_url = BASE_URL + '/deep/book?symbols={}'.format(tickers)
             results = get_dataframe(my_url)
-            _this_row += [results]
+            if results is not None:
+                _this_row += [results]
         return pd.concat(_this_row, axis=1)
 
     this_row = _get_deep_book()
@@ -48,9 +50,9 @@ def collect_deep():
 
     try:
         while True:
-            now = datetime.datetime.now()
-            # Might as well regex?
-            current_hour = now.__str__().split(' ')[1].split('.')[0][:5]
+            now = datetime.datetime.now().__str__()
+            pattern = re.compile(r'(\d{2}):(\d{2})')
+            current_hour = pattern.search(now).group()
 
             trading_status_url = '/deep/trading-status?symbols=snap'
             trading_status = get_dataframe(BASE_URL + trading_status_url)
@@ -58,7 +60,8 @@ def collect_deep():
             if trading_status is not None and not trading_status.empty:
                 trading_status = trading_status.T['status'][0] == 'T'
 
-            print('*** Collecting data, current time: {}'.format(current_hour))
+            print('*** Collecting data, current time: {}'
+                  .format(current_hour))
 
             if '09:29' > current_hour:
                 print('***     Going to sleep for 1 minute... ')
@@ -68,7 +71,8 @@ def collect_deep():
                 so_far = _collect_deep(so_far)
 
             else:
-                print('Breaking the loop: {}, {}'.format(current_hour, trading_status))
+                print('Breaking the loop: {}, {}'
+                      .format(current_hour, trading_status))
                 break
     except KeyboardInterrupt:
         print('KeyBoard Interrupt Raised!')
@@ -91,12 +95,10 @@ if __name__ == '__main__':
         file_name = 'data/deep/deep_data_{}'.format(today)
         # while file exists, add _
         while glob.glob(file_name):
-            file_name += ['_']
+            file_name += '_'
 
         data.to_csv(file_name)
 
-    print('--- Finished collecting, took: {:.3f} seconds'.format(
-        time.time()-starting_time))
-
-
+    print('--- Finished collecting, took: {:.3f} seconds'
+          .format(time.time()-starting_time))
 

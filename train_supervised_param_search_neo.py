@@ -1,12 +1,12 @@
-from train_supervised_ohlc_per_day_cross_entropy_from_transforms import get_args, main
+from train_supervised_ohlc_per_day_cross_entropy_newly_processed import main, get_args
 from itertools import product
 
 
 def run_param_search():
-    block_depths = [6, 7, 8, ]
+    block_depths = [4, 6, ]
     const_factors = [2, 3, 4]
     learning_rate = [0.007, ]
-    linear_dim = [2, 3, 4, ]
+    linear_dim = [3, 4, 5]
     percentiles = [0.2, 0.25, 0.75, 0.8, ]
 
     for item in product(block_depths,

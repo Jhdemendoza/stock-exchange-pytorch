@@ -1,10 +1,11 @@
-import pickle
+import argparse
 import numpy as np
+import pickle
 from collections import defaultdict
 from supervised import ohlc_get_y_cols, ohlc_train_df_test_df
 from sklearn.preprocessing import MinMaxScaler, MaxAbsScaler, Normalizer, QuantileTransformer
 from sklearn.pipeline import FeatureUnion
-import argparse
+from utils.util import create_path
 
 
 def get_args():
@@ -17,8 +18,9 @@ def get_args():
     parser.add_argument('--min_shift_forward',      default=4,     type=int)
     parser.add_argument('--max_shift_forward',      default=20,    type=int)
     parser.add_argument('--shift_increment',        default=5,     type=int)
-    parser.add_argument('--create_more_features',   default=True,  type=bool)
-    parser.add_argument('--folder_path',     default='data/ohlc_processed_transform/',  type=str)
+    parser.add_argument('--create_more_features',   default=False,  type=bool)
+    parser.add_argument('--folder_path',
+                        default='data/ohlc_processed_transform/',  type=str)
     return parser.parse_args()
 
 
@@ -69,14 +71,13 @@ def get_input_target(ticker, args=None, transform=None):
 if __name__ == '__main__':
 
     args = get_args()
+    args.folder_path = create_path(args, args.folder_path)
 
     from download_daily_data import all_tickers
     ticker_dict = defaultdict(bool)
     my_list = list(all_tickers)
     for ticker in my_list:
 
-        # This is unncessary in the current setups..
-        #     but if my_list has duplicates...
         if ticker in ticker_dict:
             continue
 
