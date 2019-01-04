@@ -85,6 +85,95 @@ class ConvBlockTransposed(nn.Module):
         return out
 
 
+class ConvBlockTransposedNew(nn.Module):
+    def __init__(self, ticker_dim, input_dim, data_point_dim, shift_dim, transform_dim, output_dim, args):
+        '''
+        :param ticker_dim     : number of tickers used for the data
+        :param data_point_dim : dim of a given data point (e.g. ohlc+volume = 5)
+        :param shift_dim      : dim of shifts in time scales (e.g. 4 different shifts backs for returns)
+        :param transform_dim  : dim of different transforms (e.g. 4 different sckit-transforms)
+        :param output_dim     : dim of outputs, should be a multiple of ticker_dim (e.g. ticker_dim * 2)
+        '''
+        assert output_dim % ticker_dim == 0, 'output_dim should be divisible by ticker_dim'
+
+        self.ticker_dim = ticker_dim
+        self.input_dim = input_dim
+        self.transform_dim = transform_dim
+        self.output_dim = output_dim
+        self.label_dim = output_dim // ticker_dim
+        self.conv_channel = self.label_dim * args.const_factor
+
+        self.c1_kernel_size = input_dim // transform_dim
+
+        super(ConvBlockTransposedNew, self).__init__()
+
+        self.c1 = nn.Conv1d(self.conv_channel,
+                            self.conv_channel,
+                            kernel_size=self.c1_kernel_size,
+                            stride=self.c1_kernel_size,
+                            bias=False)
+        dim_after_c1 = self._compute_dim_after_conv1()[1:]
+        self.l1 = nn.LayerNorm(dim_after_c1)
+        self.ct1 = nn.ConvTranspose1d(self.conv_channel,
+                                      self.conv_channel,
+                                      kernel_size=self.c1_kernel_size,
+                                      stride=self.c1_kernel_size)
+
+        self.c2 = nn.Conv1d(self.conv_channel,
+                            self.conv_channel,
+                            kernel_size=(transform_dim,),
+                            stride=transform_dim,
+                            bias=False)
+        dim_after_c2 = self._compute_dim_after_conv2()[1:]
+        self.l2 = nn.LayerNorm(dim_after_c2)
+        self.ct2 = nn.ConvTranspose1d(self.conv_channel,
+                                      self.conv_channel,
+                                      kernel_size=(transform_dim,),
+                                      stride=transform_dim)
+
+        self.args = args
+        if self.args.linear_dim > 0:
+
+            if len(dim_after_c2) > 1:
+                dim_after_c2 = dim_after_c2[-1]
+
+            self.linear_1 = nn.Linear(dim_after_c2,
+                                      args.linear_dim,
+                                      bias=False)
+            self.linear_2 = nn.Linear(args.linear_dim,
+                                      dim_after_c2,
+                                      bias=False)
+
+    def _compute_dim_after_conv1(self):
+        c1_output = self._conv1_test_input()
+        return c1_output.shape
+
+    def _compute_dim_after_conv2(self):
+        c2_output = self._conv2_test_input()
+        return c2_output.shape
+
+    def _conv1_test_input(self):
+        temp_input = torch.ones((1, self.conv_channel, self.input_dim*self.ticker_dim), requires_grad=False)
+        return self.c1(temp_input)
+
+    def _conv2_test_input(self):
+        conv_1_out = self._conv1_test_input()
+        return self.c2(conv_1_out)
+
+    def forward(self, input):
+        out = torch.relu(self.l1(self.c1(input)))
+
+        out = torch.relu(self.l2(self.c2(out)))
+
+        if self.args.linear_dim > 0:
+            out = torch.tanh(self.linear_1(out))
+            out = torch.tanh(self.linear_2(out))
+
+        out = self.ct2(out)
+        out = self.ct1(out) + input
+        return out
+
+
 class ConvBlockWrapper(nn.Module):
     def __init__(self, ticker_dim, data_point_dim, shift_dim, transform_dim, output_dim, args):
         '''
@@ -109,7 +198,7 @@ class ConvBlockWrapper(nn.Module):
                                      stride=(shift_dim * data_point_dim),
                                      bias=False)
         original_dim_after_c1 = self._compute_dim_after_original_conv1()
-        self.original_l1 = nn.LayerNorm(original_dim_after_c1[-1])
+        self.original_l1 = nn.LayerNorm(original_dim_after_c1[1:])
         self.original_ct1 = nn.ConvTranspose1d(self.conv_channel,
                                                self.conv_channel,
                                                kernel_size=(shift_dim * data_point_dim,),
@@ -140,6 +229,84 @@ class ConvBlockWrapper(nn.Module):
 
     def _conv1_test_input(self):
         temp_input = torch.ones((1, 1, self.input_dim), requires_grad=False)
+        return self.original_c1(temp_input)
+
+    def forward(self, input):
+        input = input.unsqueeze(1)
+        out = self.original_ct1(torch.relu(self.original_l1(self.original_c1(input))))
+        out = self.mid_blocks(out)
+        out = self.c1(out)
+        out = self.c2(out)
+        return torch.sigmoid(out.reshape((-1, self.output_dim)).contiguous())
+
+    def show_parameter_shapes(self):
+        '''
+        Use this function as a reminder of horrible param sizes...
+        '''
+        return [param.shape for child in self.children() for param in child.parameters()]
+
+
+class ConvBlockWrapperNew(nn.Module):
+    def __init__(self, ticker_dim, input_dim, data_point_dim, shift_dim, transform_dim, output_dim, args):
+        '''
+        :param ticker_dim     : number of tickers used for the data
+        :param input_dim      : dim of input
+        :param data_point_dim (Deprecate) : dim of a given data point (e.g. ohlc+volume = 5)
+        :param shift_dim      (Deprecate) : dim of shifts in time scales (e.g. 4 different shifts backs for returns)
+        :param transform_dim  : dim of different transforms (e.g. 4 different sckit-transforms)
+        :param output_dim     : dim of outputs, should be a multiple of ticker_dim (e.g. ticker_dim * 2)
+        '''
+        assert output_dim % ticker_dim == 0, '{} % {} != 0'.format(output_dim, ticker_dim)
+        assert input_dim % transform_dim == 0, '{} % {} != 0'.format(input_dim, ticker_dim)
+
+        self.ticker_dim = ticker_dim
+        self.input_dim = input_dim
+        self.transform_dim = transform_dim
+        self.output_dim = output_dim
+        self.label_dim = output_dim // ticker_dim
+        self.conv_channel = self.label_dim * args.const_factor
+
+        self.c1_kernel_size = input_dim // transform_dim
+
+        super(ConvBlockWrapperNew, self).__init__()
+        self.original_c1 = nn.Conv1d(1,
+                                     self.conv_channel,
+                                     kernel_size=self.c1_kernel_size,
+                                     stride=self.c1_kernel_size,
+                                     bias=False)
+        original_dim_after_c1 = self._compute_dim_after_original_conv1()
+        self.original_l1 = nn.LayerNorm(original_dim_after_c1[1:])
+        self.original_ct1 = nn.ConvTranspose1d(self.conv_channel,
+                                               self.conv_channel,
+                                               kernel_size=self.c1_kernel_size,
+                                               stride=self.c1_kernel_size)
+
+        c2_blocks = [ConvBlockTransposedNew(ticker_dim,
+                                            input_dim,
+                                            data_point_dim,
+                                            shift_dim,
+                                            transform_dim,
+                                            output_dim,
+                                            args) for _ in range(args.block_depth)]
+        self.mid_blocks = nn.Sequential(*c2_blocks)
+
+        self.c1 = nn.Conv1d(self.conv_channel,
+                            self.conv_channel,
+                            kernel_size=self.c1_kernel_size,
+                            stride=self.c1_kernel_size,
+                            bias=False)
+        self.c2 = nn.Conv1d(self.conv_channel,
+                            self.label_dim,
+                            kernel_size=transform_dim,
+                            stride=transform_dim,
+                            bias=False)
+
+    def _compute_dim_after_original_conv1(self):
+        c1_output = self._conv1_test_input()
+        return c1_output.shape
+
+    def _conv1_test_input(self):
+        temp_input = torch.ones((1, 1, self.input_dim*self.ticker_dim), requires_grad=False)
         return self.original_c1(temp_input)
 
     def forward(self, input):

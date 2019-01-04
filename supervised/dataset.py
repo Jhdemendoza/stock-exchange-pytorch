@@ -113,7 +113,11 @@ class PortfolioData(TickerData):
 
 
 class TickersData(Dataset):
-    def __init__(self, ticker_list, last_file_path, y_transform=lambda x: x, path='data/ohlc_processed/'):
+    def __init__(self,
+                 ticker_list,
+                 last_file_path,
+                 y_transform=lambda x: x,
+                 path='data/ohlc_processed/'):
         '''
         :param ticker_list: iterable tickers
         :param last_file_path: pickle_file (e.g. _train.pickle, _test.pickle)
