@@ -269,9 +269,9 @@ def get_args():
 
 
 def get_logger(args):
-    args.log_folder_path = create_path(args, args.log_folder_path)
+    args.log_folder_path = create_path(args, args.log_folder_path, is_log_path=True)
     log_file_path = (args.log_folder_path +
-                     'training_bce_{}_{}'
+                     'training_bce_{}_{}.log'
                      .format('_'
                              .join(datetime
                                    .datetime
