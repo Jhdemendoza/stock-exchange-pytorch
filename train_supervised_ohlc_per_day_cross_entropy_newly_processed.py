@@ -6,18 +6,21 @@ import os
 import pandas as pd
 import torch
 from torch.utils.data import DataLoader
-from functools import partial, wraps
+from functools import partial
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from supervised import get_metrics, TickersData, device, ConvBlockWrapper, ConvBlockWrapperNew
 from supervised.utils_ignite import prepare_batch_all, prepare_batch_empty_label, get_binary_target
-from utils.util import create_path
+from utils.util import create_path, register_early_stopping, wrap_model_in_eval_mode, print_and_log
 import warnings
 warnings.filterwarnings('ignore')
 
 
 def get_tickers(args):
     from download_daily_data import my_list, russell_ticker_set
-    all_tickers = my_list | russell_ticker_set
+
+    snp = set(pd.read_csv('data/snp_tickers.csv').Symbol.tolist())
+    all_tickers = my_list | snp
+    # all_tickers = my_list | russell_ticker_set
 
     my_list = list(all_tickers)[:args.max_num_tickers]
     pickle_files = list(map(lambda x: x.split('_')[0],
@@ -63,6 +66,7 @@ def compute_threshold_mask(given_tickers, args, last_file_path):
 
 
 def get_data_loaders_etc(args):
+
     def get_shift_data_point_transform_dims():
         data_point_dim = args.data_point_dim
         x_dim = int(last_file_path_train.split('_')[-1].split('.')[0])
@@ -72,10 +76,23 @@ def get_data_loaders_etc(args):
         output_dim = train_set[0][2].shape[0]
         return x_dim, shift_dim, data_point_dim, transform_dim, output_dim
 
+    def compute_weights_for_dataloader():
+        weights = torch.Tensor([y_bin.mean() for _, _, y_bin in train_set])
+        sampler_length = train_set.__len__() // 2
+        sampler = (torch.utils
+                        .data
+                        .sampler
+                        .WeightedRandomSampler(weights, sampler_length, False))
+        return sampler
+
     tentative_tickers = get_tickers(args)
     last_file_path_train, last_file_path_test = get_last_file_path(args)
-    thresholds = compute_threshold_mask(tentative_tickers, args, last_file_path_train)
-    binary_transform_fn = partial(get_binary_target, threshold=thresholds, args=args)
+    thresholds = compute_threshold_mask(tentative_tickers,
+                                        args,
+                                        last_file_path_train)
+    binary_transform_fn = partial(get_binary_target,
+                                  threshold=thresholds,
+                                  args=args)
 
     train_set = TickersData(tentative_tickers,
                             last_file_path_train,
@@ -85,10 +102,11 @@ def get_data_loaders_etc(args):
                            last_file_path_test,
                            y_transform=binary_transform_fn,
                            path=args.file_path)
+
     train_dl = DataLoader(train_set,
                           num_workers=1,
                           batch_size=args.batch_size,
-                          shuffle=True)
+                          sampler=compute_weights_for_dataloader(),)
     test_dl = DataLoader(test_set,
                          num_workers=1,
                          batch_size=args.batch_size)
@@ -132,17 +150,6 @@ def compute_return_distribution_on_pred(model, data_loader, threshold=0.5):
     return so_far.mean(), so_far.std()
 
 
-def wrap_model_in_eval_mode(model):
-    def _wrap_model_in_eval_mode(func):
-        @wraps(func)
-        def _wrapper(*args, **kwargs):
-            model.eval()
-            func(*args, **kwargs)
-            model.train()
-        return _wrapper
-    return _wrap_model_in_eval_mode
-
-
 def register_evaluators(trainer,
                         evaluator_train,
                         evaluator_test,
@@ -158,6 +165,7 @@ def register_evaluators(trainer,
         if trainer.state.epoch % args.print_every == 0:
 
             mean_stat, std_stat = compute_return_distribution_on_pred(model, train_dl)
+
             evaluator_train.run(train_dl)
             metrics = evaluator_train.state.metrics
 
@@ -176,6 +184,7 @@ def register_evaluators(trainer,
         if trainer.state.epoch % args.print_every == 0:
 
             mean_stat, std_stat = compute_return_distribution_on_pred(model, test_dl)
+
             evaluator_test.run(test_dl)
             metrics = evaluator_test.state.metrics
 
@@ -187,11 +196,6 @@ def register_evaluators(trainer,
             print_and_log(msg1+msg2+msg3, bce_logger)
             print("Validation Results  - Epoch: {} Confusion Matrix: \n{}".format(
                 trainer.state.epoch, metrics['conf_matrix'], ))
-
-
-def print_and_log(msg, logger):
-    print(f'{msg}')
-    logger.info(f'{msg}')
 
 
 def main(args):
@@ -238,6 +242,8 @@ def main(args):
                         args,
                         bce_logger,)
 
+    register_early_stopping(evaluator_test, trainer, args)
+
     trainer.run(train_dl, max_epochs=args.max_epoch)
 
     print_and_log('--- Ending training: {}'.format(datetime.datetime.now()), bce_logger)
@@ -248,22 +254,24 @@ def main(args):
 
 def get_args():
     parser = argparse.ArgumentParser(description='Hyper-parameters for the training')
-    parser.add_argument('--max_epoch',       default=40, type=int)
+    parser.add_argument('--max_epoch',       default=30, type=int)
     parser.add_argument('--max_num_tickers', default=800, type=int)
     parser.add_argument('--print_every',     default=1, type=int)
     parser.add_argument('--batch_size',      default=64, type=int)
     parser.add_argument('--data_point_dim',  default=5, type=int)
     parser.add_argument('--transform',       default=True, type=bool)
     parser.add_argument('--transform_dim',   default=2, type=int)
-    parser.add_argument('--block_depth',     default=3, type=int)
-    parser.add_argument('--const_factor',    default=3, type=int,
+    parser.add_argument('--block_depth',     default=4, type=int)
+    parser.add_argument('--const_factor',    default=4, type=int,
                         help='arbitrary constant used for computing output dim')
     parser.add_argument('--linear_dim',      default=4, type=int,
                         help='arbitrary linear dim used in blocks')
-    parser.add_argument('--learning_rate',   default=0.01,  type=float)
+    parser.add_argument('--learning_rate',   default=0.007,  type=float)
     parser.add_argument('--percentile',      default=0.8,   type=float, help='percentile from a distribution')
     parser.add_argument('--file_path',       default='data/ohlc_processed_transform_backup/',   type=str)
-    parser.add_argument('--log_folder_path', default='logs/', type=str)
+    parser.add_argument('--log_folder_path', default='logs/snp_with_sampling/', type=str)
+    parser.add_argument('--patience',        default=18, type=int,
+                        help='early stopping patience')
     args = parser.parse_args()
     return args
 
