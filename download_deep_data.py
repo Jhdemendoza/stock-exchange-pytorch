@@ -1,16 +1,21 @@
+import argparse
 import datetime
 import glob
 import math
 import pandas as pd
-import time
+import pandas_datareader.data as web
 import re
-
+import time
+from functools import partial
 
 from download_daily_data import all_tickers, BASE_URL, my_list, get_dataframe
 
 
 # Looks bad.. but for now
 my_list = list(my_list)
+snp = pd.read_csv('data/snp_tickers.csv').Symbol.tolist()
+
+
 def get_tickers_in_tuple():
     ticker_tuples = []
     for idx in range(math.ceil(len(my_list) / 10)):
@@ -45,7 +50,20 @@ def _collect_deep(so_far):
     return so_far
 
 
-def collect_deep():
+def _collect_top(so_far, ticker_list):
+    time.sleep(1)
+    this_row = web.DataReader(ticker_list, 'iex-tops')
+
+    if so_far is None:
+        so_far = this_row
+    else:
+        so_far = pd.concat([so_far, this_row], axis=0)
+
+    return so_far
+
+
+def collect_wrapper(collect_fn):
+    # Initializing to pd.DataFrame() might be a more sound idea...
     so_far = None
 
     try:
@@ -68,7 +86,7 @@ def collect_deep():
                 time.sleep(60)
 
             elif (current_hour < '16:00') and trading_status:
-                so_far = _collect_deep(so_far)
+                so_far = collect_fn(so_far)
 
             else:
                 print('Breaking the loop: {}, {}'
@@ -82,17 +100,34 @@ def collect_deep():
         return so_far
 
 
+def get_args():
+    parser = argparse.ArgumentParser(description='Choose deep vs top')
+    parser.add_argument('--collect_fn', choices=['deep', 'top'])
+    return parser.parse_args()
+
+
 if __name__ == '__main__':
+
+    args = get_args()
+    collect = args.collect_fn
+
     today = datetime.datetime.today().date().__str__()
     print('--- Deep Book being collected... {}'.format(today))
 
     starting_time = time.time()
-    data = collect_deep()
+
+    if args.collect_fn == 'deep':
+        data = collect_wrapper(_collect_deep)
+    else:
+        _collect_top = partial(_collect_top, ticker_list=snp)
+        data = collect_wrapper(_collect_top)
 
     if data is not None:
         print('--- Saving... {}'.format(datetime.datetime.now()))
         today = today.replace('-', '_')
-        file_name = 'data/deep/deep_data_{}'.format(today)
+        # Might want to add mkdir...
+        file_name = 'data/{}/{}_data_{}'.format(collect, collect, today)
+
         # while file exists, add _
         while glob.glob(file_name):
             file_name += '_'

@@ -11,7 +11,7 @@ NEWS = '/news/last/10'
 my_list = {
      'tsla', 'aapl', 'goog', 'sbux', 'tm', 'msft', 'gs', 'fb',
      'bcs', 'atvi', 'baba', 'virt', 'nvda', 'amd',
-     'tot', 'bp', 'akam', 't', 'vz', 'ntdoy', 'shak',
+     'tot', 'bp', 'akam', 't', 'vz', 'shak',
      'cmg', 'ddd', 'ssys', 'cost', 'cg', 'amzn', 'bidu',
      'ntes', 'sina', 'snap', 'nvs', 'adbe', 'orcl', 'cldr',
      'habt', 'aep', 'duk', 'd', 'peg', 'pcg',
