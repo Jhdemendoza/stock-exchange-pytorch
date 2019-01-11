@@ -25,15 +25,15 @@ def sin_lr(x):
 
 
 def get_numeric_categoric(df):
-    numeric_cols, categorical_cols = [], []
+    numeric_cols, categoric_cols = [], []
 
     for col in df:
         if np.issubdtype(df[col].dtype, np.number):
             numeric_cols += [col]
         else:
-            categorical_cols += [col]
+            categoric_cols += [col]
 
-    return numeric_cols, categorical_cols
+    return numeric_cols, categoric_cols
 
 
 # --------------------------------------------------------------------
@@ -42,13 +42,18 @@ def get_numeric_categoric(df):
 def get_processed_minute_data(dataframes_in_list):
     for df in dataframes_in_list:
         cols = df.columns.tolist()
-        cols_to_drop = cols[:4] + ['label', 'changeOverTime',
-                                   'low', 'marketAverage',
-                                   'marketClose',
-                                   'volume', 'numberOfTrades',
-                                   'notional', 'open',
-                                   'close', 'high',
+        cols_to_drop = cols[:4] + ['label',
+                                   'open',
+                                   'close',
+                                   'low',
+                                   'high',
+                                   'volume',
+                                   'notional',
+                                   'numberOfTrades',
+                                   'changeOverTime',
                                    'marketChangeOverTime',
+                                   'marketAverage',
+                                   'marketClose',
                                    'marketNotional']
 
         df.drop(cols_to_drop, axis=1, inplace=True)
@@ -132,13 +137,15 @@ def delta_dataframe_with_y_columns_new(df, numeric_columns, args=None):
 # --------------------------------------------------------------------
 # --- minute-data
 # --------------------------------------------------------------------
-def train_df_test_df_in_lists(ticker):
+def train_df_test_df_in_lists(ticker, date_starting, date_ending):
+
     def _get_dataframes_in_a_list(ticker_files):
         return [pd.read_csv(data_path+ticker) for ticker in ticker_files]
 
     # daily_data := daily minute data... misnomer
     data_path = 'data/daily_data/'
-    ticker_files = [item for item in os.listdir(data_path) if ticker in item.split('_')]
+    ticker_files = [file for file in os.listdir(data_path)
+                    if (ticker in file.split('_') and (date_starting < file < date_ending))]
     ticker_files.sort()
 
     if len(ticker_files) == 0:
@@ -157,7 +164,9 @@ def train_df_test_df_in_lists(ticker):
 # --- minute-data
 # --------------------------------------------------------------------
 def load_dataframes(ticker, args=None):
-    train_df_a_list, test_df_a_list = train_df_test_df_in_lists(ticker)
+    train_df_a_list, test_df_a_list = train_df_test_df_in_lists(ticker,
+                                                                args.date_starting,
+                                                                args.date_ending)
 
     if train_df_a_list is None:
         return None, None, None, None

@@ -18,6 +18,8 @@ def get_args():
     parser.add_argument('--min_shift_forward',      default=4,     type=int)
     parser.add_argument('--max_shift_forward',      default=20,    type=int)
     parser.add_argument('--shift_increment',        default=5,     type=int)
+    parser.add_argument('--date_starting',          default='20181007',     type=str)
+    parser.add_argument('--date_ending',            default='20181201',     type=str)
     parser.add_argument('--create_more_features',   default=False,  type=bool)
     parser.add_argument('--folder_path',
                         default='data/minute_processed_transform/',  type=str)
