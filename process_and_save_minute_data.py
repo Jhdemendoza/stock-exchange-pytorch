@@ -2,7 +2,7 @@ import argparse
 import numpy as np
 import pickle
 from collections import defaultdict
-from supervised import get_y_cols, ohlc_train_df_test_df
+from supervised import get_y_cols, load_dataframes
 from sklearn.preprocessing import MinMaxScaler, MaxAbsScaler, Normalizer, QuantileTransformer
 from sklearn.pipeline import FeatureUnion
 from utils.util import create_path
@@ -11,16 +11,16 @@ from utils.util import create_path
 def get_args():
     # transform_dim should be 1 if transform==False... Identity Transform...
     parser = argparse.ArgumentParser(description='Hyper-parameters for the training')
-    parser.add_argument('--data_point_dim',  default=5,     type=int)
-    parser.add_argument('--transform',       default=True, type=bool)
-    parser.add_argument('--transform_dim',   default=2,     type=int)
+    parser.add_argument('--data_point_dim',         default=5,     type=int)
+    parser.add_argument('--transform',              default=True, type=bool)
+    parser.add_argument('--transform_dim',          default=2,     type=int)
     parser.add_argument('--target_shift',           default=10,    type=int)
     parser.add_argument('--min_shift_forward',      default=4,     type=int)
     parser.add_argument('--max_shift_forward',      default=20,    type=int)
     parser.add_argument('--shift_increment',        default=5,     type=int)
     parser.add_argument('--create_more_features',   default=False,  type=bool)
     parser.add_argument('--folder_path',
-                        default='data/ohlc_processed_transform/',  type=str)
+                        default='data/minute_processed_transform/',  type=str)
     return parser.parse_args()
 
 
@@ -45,11 +45,15 @@ def get_transfomed_combiner(df):
 
 def get_input_target(ticker, args=None, transform=None):
     # messy code...
-    train_df_original, test_df_original, numeric_cols, categoric_cols = ohlc_train_df_test_df(ticker, args=args)
+    (train_df_original,
+     test_df_original,
+     numeric_cols,
+     categoric_cols) = load_dataframes(ticker, args=args)
+
     if train_df_original is None:
         return None, None, None, None
 
-    y_cols, not_interested = get_y_cols(numeric_cols)
+    y_cols, not_interested = get_y_cols(numeric_cols, minute_data=True)
     numeric_cols = list(sorted(set(numeric_cols) - set(y_cols) - set(not_interested)))
 
     train_df, y_train = train_df_original[numeric_cols].copy(), train_df_original[y_cols].copy()

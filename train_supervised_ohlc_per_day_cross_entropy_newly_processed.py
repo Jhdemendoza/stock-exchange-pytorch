@@ -106,7 +106,8 @@ def get_data_loaders_etc(args):
     train_dl = DataLoader(train_set,
                           num_workers=1,
                           batch_size=args.batch_size,
-                          sampler=compute_weights_for_dataloader(),)
+                          shuffle=True)
+                          # sampler=compute_weights_for_dataloader(),)
     test_dl = DataLoader(test_set,
                          num_workers=1,
                          batch_size=args.batch_size)
@@ -268,9 +269,11 @@ def get_args():
                         help='arbitrary linear dim used in blocks')
     parser.add_argument('--learning_rate',   default=0.007,  type=float)
     parser.add_argument('--percentile',      default=0.8,   type=float, help='percentile from a distribution')
-    parser.add_argument('--file_path',       default='data/ohlc_processed_transform_backup/',   type=str)
-    parser.add_argument('--log_folder_path', default='logs/snp_with_sampling/', type=str)
-    parser.add_argument('--patience',        default=18, type=int,
+    parser.add_argument('--file_path',
+                        default='data/ohlc_processed_transform/create_more_features=False,data_point_dim=5,max_shift_forward=20,min_shift_forward=4,shift_increment=5,target_shift=10,transform=True,transform_dim=2/',   type=str)
+    parser.add_argument('--log_folder_path',
+                        default='logs/snp_with_look_back_only_sklearn_transform_minmax_normalizer_no_sampling/', type=str)
+    parser.add_argument('--patience',        default=20, type=int,
                         help='early stopping patience')
     args = parser.parse_args()
     return args

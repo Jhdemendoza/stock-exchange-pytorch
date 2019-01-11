@@ -81,7 +81,7 @@ def collect_wrapper(collect_fn):
             print('*** Collecting data, current time: {}'
                   .format(current_hour))
 
-            if '09:29' > current_hour:
+            if current_hour < '09:30':
                 print('***     Going to sleep for 1 minute... ')
                 time.sleep(60)
 
@@ -102,21 +102,21 @@ def collect_wrapper(collect_fn):
 
 def get_args():
     parser = argparse.ArgumentParser(description='Choose deep vs top')
-    parser.add_argument('--collect_fn', choices=['deep', 'top'])
+    parser.add_argument('--collect', choices=['deep', 'top'])
     return parser.parse_args()
 
 
 if __name__ == '__main__':
 
     args = get_args()
-    collect = args.collect_fn
+    collect = args.collect
 
     today = datetime.datetime.today().date().__str__()
-    print('--- Deep Book being collected... {}'.format(today))
+    print('--- {} book being collected... {}'.format(collect, today))
 
     starting_time = time.time()
 
-    if args.collect_fn == 'deep':
+    if args.collect == 'deep':
         data = collect_wrapper(_collect_deep)
     else:
         _collect_top = partial(_collect_top, ticker_list=snp)
