@@ -255,7 +255,7 @@ def main(args):
 
 def get_args():
     parser = argparse.ArgumentParser(description='Hyper-parameters for the training')
-    parser.add_argument('--max_epoch',       default=30, type=int)
+    parser.add_argument('--max_epoch',       default=200, type=int)
     parser.add_argument('--max_num_tickers', default=800, type=int)
     parser.add_argument('--print_every',     default=1, type=int)
     parser.add_argument('--batch_size',      default=64, type=int)
@@ -263,18 +263,22 @@ def get_args():
     parser.add_argument('--transform_dim',   default=2, type=int)
     parser.add_argument('--data_point_dim',  default=5, type=int)
     parser.add_argument('--block_depth',     default=4, type=int)
-    parser.add_argument('--const_factor',    default=4, type=int,
+    parser.add_argument('--const_factor',    default=16, type=int,
                         help='arbitrary constant used for computing output dim')
-    parser.add_argument('--linear_dim',      default=4, type=int,
+    parser.add_argument('--linear_dim',      default=8, type=int,
                         help='arbitrary linear dim used in blocks')
-    parser.add_argument('--learning_rate',   default=0.007,  type=float)
-    parser.add_argument('--percentile',      default=0.8,   type=float, help='percentile from a distribution')
+    parser.add_argument('--learning_rate',   default=0.005,  type=float)
+    parser.add_argument('--percentile',      default=0.85,   type=float, help='percentile from a distribution')
     parser.add_argument('--file_path',
-                        default='data/minute_processed_transform/create_more_features=False,data_point_dim=5,max_shift_forward=20,min_shift_forward=4,shift_increment=5,target_shift=10,transform=True,transform_dim=2/',
+                        # default='data/minute_processed_transform/create_more_features=False,data_point_dim=5,max_shift_forward=20,min_shift_forward=4,shift_increment=5,target_shift=10,transform=True,transform_dim=2/',
+                        # default="data/minute_processed_transform/oct_7_nov_7/create_more_features=False,data_point_dim=5,date_ending='20181107',date_starting='20181007',folder_path='data,max_shift_forward=20,min_shift_forward=4,shift_increment=5,target_shift=10,transform=True,transform_dim=22019-01-11/",
+                        # default="data/minute_processed_transform/oct_7_nov_7_dispersed/create_more_features=False,data_point_dim=5,date_ending='20181107',date_starting='20181007',folder_path='data,max_shift_forward=40,min_shift_forward=4,shift_increment=8,target_shift=10,transform=True,transform_dim=22019-01-12/",
+                        # default="data/minute_processed_transform/oct_7_nov_7_dispersed/create_more_features=False,data_point_dim=5,date_ending='20181107',date_starting='20181007',folder_path='data,max_shift_forward=14,min_shift_forward=1,shift_increment=2,target_shift=5,transform=True,transform_dim=22019-01-12/",
+                        default="data/minute_processed_transform/oct_7_nov_7_ten_predicts_two/create_more_features=False,data_point_dim=5,date_ending='20181107',date_starting='20181007',folder_path='data,max_shift_forward=10,min_shift_forward=1,shift_increment=2,target_shift=2,transform=True,transform_dim=22019-01-16/",
                         help='must include slash at the back!', type=str)
     parser.add_argument('--log_folder_path',
-                        default='logs/minute_training_log/snp_with_look_back_only_sklearn_transform_minmax_normalizer_no_sampling/', type=str)
-    parser.add_argument('--patience',        default=20, type=int,
+                        default='logs/minute_training_log/snp_with_look_back_only_10_predicts_2/', type=str)
+    parser.add_argument('--patience',        default=40, type=int,
                         help='early stopping patience')
     args = parser.parse_args()
     return args

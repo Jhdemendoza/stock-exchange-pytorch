@@ -1,5 +1,6 @@
 import argparse
 import numpy as np
+import pandas as pd
 import pickle
 from collections import defaultdict
 from supervised import get_y_cols, load_dataframes
@@ -12,17 +13,17 @@ def get_args():
     # transform_dim should be 1 if transform==False... Identity Transform...
     parser = argparse.ArgumentParser(description='Hyper-parameters for the training')
     parser.add_argument('--data_point_dim',         default=5,     type=int)
-    parser.add_argument('--transform',              default=True, type=bool)
+    parser.add_argument('--transform',              default=True,  type=bool)
     parser.add_argument('--transform_dim',          default=2,     type=int)
-    parser.add_argument('--target_shift',           default=10,    type=int)
-    parser.add_argument('--min_shift_forward',      default=4,     type=int)
-    parser.add_argument('--max_shift_forward',      default=20,    type=int)
-    parser.add_argument('--shift_increment',        default=5,     type=int)
+    parser.add_argument('--target_shift',           default=2,    type=int)
+    parser.add_argument('--min_shift_forward',      default=1,     type=int)
+    parser.add_argument('--max_shift_forward',      default=10,    type=int)
+    parser.add_argument('--shift_increment',        default=2,     type=int)
     parser.add_argument('--date_starting',          default='20181007',     type=str)
-    parser.add_argument('--date_ending',            default='20181201',     type=str)
+    parser.add_argument('--date_ending',            default='20181107',     type=str)
     parser.add_argument('--create_more_features',   default=False,  type=bool)
     parser.add_argument('--folder_path',
-                        default='data/minute_processed_transform/',  type=str)
+                        default='data/minute_processed_transform/oct_7_nov_7_ten_predicts_two/',  type=str)
     return parser.parse_args()
 
 
@@ -79,9 +80,12 @@ if __name__ == '__main__':
     args = get_args()
     args.folder_path = create_path(args, args.folder_path)
 
-    from download_daily_data import all_tickers
     ticker_dict = defaultdict(bool)
-    my_list = list(all_tickers)
+
+    # from download_daily_data import all_tickers
+    # my_list = list(all_tickers)
+    my_list = pd.read_csv('data/snp_tickers.csv').Symbol.tolist()
+
     for ticker in my_list:
 
         if ticker in ticker_dict:
