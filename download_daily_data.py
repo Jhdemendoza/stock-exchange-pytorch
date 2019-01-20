@@ -101,4 +101,4 @@ if __name__ == '__main__':
         if ticker_df is not None and 'minute' in ticker_df.columns and 'date' in ticker_df.columns:
             save_df(ticker_df, ticker)
 
-        time.sleep(0.1)
+        time.sleep(0.05)

@@ -267,7 +267,7 @@ def get_args():
                         help='arbitrary constant used for computing output dim')
     parser.add_argument('--linear_dim',      default=8, type=int,
                         help='arbitrary linear dim used in blocks')
-    parser.add_argument('--learning_rate',   default=0.005,  type=float)
+    parser.add_argument('--learning_rate',   default=0.008,  type=float)
     parser.add_argument('--percentile',      default=0.85,   type=float, help='percentile from a distribution')
     parser.add_argument('--file_path',
                         # default='data/minute_processed_transform/create_more_features=False,data_point_dim=5,max_shift_forward=20,min_shift_forward=4,shift_increment=5,target_shift=10,transform=True,transform_dim=2/',

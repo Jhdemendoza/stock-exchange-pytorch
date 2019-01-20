@@ -102,7 +102,7 @@ def collect_wrapper(collect_fn):
 
 def get_args():
     parser = argparse.ArgumentParser(description='Choose deep vs top')
-    parser.add_argument('--collect', choices=['deep', 'top'])
+    parser.add_argument('--collect', choices=['deep', 'top'], required=True)
     return parser.parse_args()
 
 
