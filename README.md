@@ -1,9 +1,17 @@
-# Stock-Exchange-Pytorch
+# Stock-Exchange-PyTorch
 
 <img src="https://discuss.pytorch.org/uploads/default/original/2X/3/35226d9fbc661ced1c5d17e374638389178c3176.png" width="200" />
 
-## Originally, I started this project to learn the basics of **reinforcement learning**. Eventually, I have taken some detour. The code-base has grown with a mess... `git stash`ing for now.
+### Originally, I started this project to learn some basics of **reinforcement learning** and have taken a detour. The code-base has become a mess. `git stash`ing for now.
+### Before you say you **want** reinforcement learning, please make sure you really do.
 
+
+### Examples
+Some of the ideas used for this project is illustrated in the [examples](examples/) folder.
+Things do get interesting once you start digging into some of the log file analysis.
+
+
+### Original README.md:
 `stock-exchange-pytorch` applies deep learning algorithms
 to financial market data in `pytorch`.
 Namely, `reinforcement learning` and  `supervised learning`
@@ -17,6 +25,7 @@ Reinforcement Learning
 
 ~~Supervised Learning~~
 - [x] ~~Gated Recurrent Unit (GRU) approach to fit distributions [[7]](https://arxiv.org/abs/1406.1078)~~
+- [x] Try as few parameters as possible to actually make some viable products
 
 Data
 - [x] `market data` from [Investor's Exchange (IEX)](https://iextrading.com/).
@@ -58,6 +67,11 @@ Obviously, `DDPG` uses continuous action-space, and `DQN` uses discrete settings
 Code for [continuous](gym_exchange/envs/stock_exchange_continuous.py) and
 [discrete](gym_exchange/envs/stock_exchange.py) are found here.
 
+### Reminder
+Things to think about before trying any models:
+- Data Size
+- Param Size for a model
+- Are you sure `reinforcement learning` adds much value?
 
 ### Future work
 - [x] Provide constraints in holdings for `gym_stock_exchange`
