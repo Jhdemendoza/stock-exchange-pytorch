@@ -1,6 +1,9 @@
 # Stock-Exchange-Pytorch
 
 <img src="https://discuss.pytorch.org/uploads/default/original/2X/3/35226d9fbc661ced1c5d17e374638389178c3176.png" width="200" />
+
+## Originally, I started this project to learn the basics of **reinforcement learning**. Eventually, I have taken some detour. The code-base has grown with a mess... `git stash`ing for now.
+
 `stock-exchange-pytorch` applies deep learning algorithms
 to financial market data in `pytorch`.
 Namely, `reinforcement learning` and  `supervised learning`
