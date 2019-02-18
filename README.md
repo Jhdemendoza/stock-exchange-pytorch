@@ -2,16 +2,15 @@
 
 <img src="https://discuss.pytorch.org/uploads/default/original/2X/3/35226d9fbc661ced1c5d17e374638389178c3176.png" width="200" />
 
-### Originally, I started this project to learn some basics of **reinforcement learning** and have taken a detour. The code-base has become a mess. `git stash`ing for now.
+### Originally, I started this project to learn some basics of **reinforcement learning** and have taken a detour. The code-base has become a **mess**. `git stash`ing for now.
 ### Before you say you **want** reinforcement learning, please make sure you really do.
 
-
 ### Examples
-Some of the ideas used for this project is illustrated in the [examples](examples/) folder.
+Some of the ideas used for this project are illustrated in the [examples](examples/) folder.
 Things do get interesting once you start digging into some of the log file analysis.
 
 
-### Original README.md:
+# Original README.md
 `stock-exchange-pytorch` applies deep learning algorithms
 to financial market data in `pytorch`.
 Namely, `reinforcement learning` and  `supervised learning`
@@ -23,9 +22,9 @@ Reinforcement Learning
 - [x] Dueling network DQN (Dueling DQN) [[4]](https://arxiv.org/abs/1511.06581)
 - [x] Deep Deterministic Policy Gradient (DDPG) [[5]](http://arxiv.org/abs/1509.02971)
 
-~~Supervised Learning~~
+Supervised Learning
 - [x] ~~Gated Recurrent Unit (GRU) approach to fit distributions [[7]](https://arxiv.org/abs/1406.1078)~~
-- [x] Try as few parameters as possible to actually make some viable products
+- [x] Try as few parameters as possible to actually make some viable products [and it works 10x better than some of the previous work at DRW Trading](examples/log_file_analyze_with_confusion_matrix_minute_data.ipynb)
 
 Data
 - [x] `market data` from [Investor's Exchange (IEX)](https://iextrading.com/).
