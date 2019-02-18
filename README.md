@@ -29,7 +29,7 @@ Supervised Learning
 Data
 - [x] ~~`market data` from [Investor's Exchange (IEX)](https://iextrading.com/)~~
 - [x] Use Investor's Exchange to automate [downloading and saving](download_daily_data.py)
-You can download data from IEXtrading [directly](download_daily_data.py). If you want something serious (by millisecond level), look at [here](download_deep_data.py).
+You can download data from IEXtrading [directly](download_daily_data.py). If you want something serious (by millisecond level), look [here](download_deep_data.py).
 
 
 ### Requirements
