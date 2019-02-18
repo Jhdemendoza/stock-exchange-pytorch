@@ -60,8 +60,6 @@ def filling_in_for_missing_data():
     dates = d1.date.tolist()
     dates = [''.join(x.split('-')) for x in dates]
 
-    # all_tickers = my_list | russell_ticker_set
-
     for date in dates:
         for ticker in all_tickers:
             address = 'https://api.iextrading.com/1.0/stock/{}/chart/date/{}'.format(

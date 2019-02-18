@@ -3,7 +3,7 @@ from itertools import product
 
 
 def run_param_search():
-    block_depths = [2, 3, 4]
+    block_depths = [4, 5]
     const_factors = [2, 4, 6]
     learning_rate = [0.007, ]
     linear_dim = [2, 4, 6]
@@ -16,10 +16,6 @@ def run_param_search():
                         percentiles):
         block_depth, const_factor, lr, l_dim, percentile = item
         args = get_args()
-        if percentile <= 0.2:
-            args.max_epoch = 42
-        elif percentile >= 0.8:
-            args.max_epoch = 25
         args.block_depth = block_depth
         args.const_factor = const_factor
         args.learning_rate = lr

@@ -3,8 +3,8 @@ from itertools import product
 
 
 def run_param_search():
-    block_depths = [5, 6]
-    const_factors = [4, 6, 8]
+    block_depths = [3, 6]
+    const_factors = [4, ]
     learning_rate = [0.008, ]
     linear_dim = [3, 4, 5, ]
     percentiles = [0.15, 0.2, 0.8, 0.85, ]
