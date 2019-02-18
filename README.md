@@ -10,7 +10,7 @@ Some of the ideas used for this project are illustrated in the [examples](exampl
 Things do get interesting once you start digging into some of the log file analysis.
 
 
-# Original README.md
+# Original
 `stock-exchange-pytorch` applies deep learning algorithms
 to financial market data in `pytorch`.
 Namely, `reinforcement learning` and  `supervised learning`
@@ -24,11 +24,13 @@ Reinforcement Learning
 
 Supervised Learning
 - [x] ~~Gated Recurrent Unit (GRU) approach to fit distributions [[7]](https://arxiv.org/abs/1406.1078)~~
-- [x] Try as few parameters as possible to actually make some viable products [and it works 10x better than some of the previous work at DRW Trading](examples/log_file_analyze_with_confusion_matrix_minute_data.ipynb)
+- [x] Try as few parameters as possible to actually make some viable products [and it works better than some work by pros](examples/log_file_analyze_with_confusion_matrix_minute_data.ipynb)
 
 Data
-- [x] `market data` from [Investor's Exchange (IEX)](https://iextrading.com/).
-The actual data is in `iexfinance` folder of this repository.
+- [x] ~~`market data` from [Investor's Exchange (IEX)](https://iextrading.com/)~~
+- [x] Use Investor's Exchange to automate [downloading and saving](download_daily_data.py)
+You can download data from IEXtrading [directly](download_daily_data.py). If you want something serious (by millisecond level), look at [here](download_deep_data.py).
+
 
 ### Requirements
 By default, it assumes you have installed `PyTorch-0.4+` as the name suggests. 
@@ -76,6 +78,6 @@ Things to think about before trying any models:
 - [x] Provide constraints in holdings for `gym_stock_exchange`
 - [x] Provide `portfolio` by default in the `gym_stock_exchange`
 - [x] Provide examples
-- [ ] Provide more thorough support for `supervised learnings`
-- [ ] Implement `PPO` and other `policy gradient` methods
+- [x] Provide more thorough support for `supervised learnings`
+- [ ] ~~Implement `PPO` and other `policy gradient` methods~~
 - [ ] Implement `options` and `other derivatives` valuations
